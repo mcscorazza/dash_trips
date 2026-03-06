@@ -8,6 +8,12 @@
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
     <style>
+      @media (max-width: 768px) {
+        #sidebar {
+          display: none;
+        }
+      }
+
       body {
         font-family: Arial, sans-serif;
         display: flex;
@@ -173,8 +179,20 @@
         }
       }
 
-      // Inicia a aplicação
-      loadTrips();
+      async function init() {
+        await loadTrips();
+
+        const params = new URLSearchParams(window.location.search);
+        const targetBatchId = params.get("id");
+
+        if (targetBatchId) {
+          console.log(`Carregando mapa direto da URL para: ${targetBatchId}`);
+          drawRoute(targetBatchId);
+        }
+      }
+
+      // Aciona o motor
+      init();
     </script>
   </body>
 </html>
