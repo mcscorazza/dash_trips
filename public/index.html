@@ -2,17 +2,23 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
+
     <title>Dashboard de Telemetria</title>
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
     <style>
-      /* Estilo do Botão de Menu Flutuante */
       #menu-toggle {
         position: absolute;
         top: 15px;
-        right: 15px; /* Fica no canto superior direito */
+        right: 15px;
         z-index: 1000;
         background: white;
         border: 2px solid rgba(0, 0, 0, 0.2);
@@ -27,11 +33,10 @@
         background: #f4f4f4;
       }
 
-      /* Estilo da Legenda */
       #speed-legend {
         position: absolute;
         bottom: 20px;
-        right: 15px; /* Fica no canto inferior direito */
+        right: 15px;
         z-index: 1000;
         background: white;
         padding: 10px 15px;
@@ -50,18 +55,19 @@
         vertical-align: text-bottom;
       }
 
-      /* Comportamento da Barra Lateral no Mobile */
       @media (max-width: 768px) {
         #sidebar {
-          display: none; /* Escondido por padrão no celular */
-          position: absolute;
+          position: absolute; /* Descola do fundo para flutuar sobre o mapa */
           height: 100vh;
-          z-index: 1001; /* Fica por cima de tudo quando abrir */
+          transform: translateX(
+            -100%
+          ); /* Esconde fora da tela para a esquerda */
           box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
         }
-        /* Esta classe será acionada pelo JavaScript */
-        #sidebar.show {
-          display: block;
+
+        /* Esta classe será ativada pelo botão no celular */
+        #sidebar.show-mobile {
+          transform: translateX(0); /* Traz a barra de volta para a tela */
         }
       }
 
@@ -76,7 +82,14 @@
         background: #f4f4f4;
         padding: 20px;
         overflow-y: auto;
+        z-index: 1001;
+        transition: transform 0.3s ease;
       }
+
+      #sidebar.hidden-desktop {
+        display: none;
+      }
+
       #map {
         flex-grow: 1;
         height: 100%;
@@ -153,11 +166,15 @@
                 `;
           // Ao clicar, desenha a rota
           div.onclick = () => {
-            window.history.pushState({}, "", `?batch_id=${trip.batch_id}`);
+            window.history.pushState({}, "", `?id=${trip.batch_id}`);
             drawRoute(trip.batch_id);
-            // Se estiver no celular, esconde a barra automaticamente após clicar
-            const sidebar = document.getElementById("sidebar");
-            sidebar.classList.remove("show");
+
+            // Esconde a barra automaticamente se for celular
+            if (window.innerWidth <= 768) {
+              document
+                .getElementById("sidebar")
+                .classList.remove("show-mobile");
+            }
           };
 
           listDiv.appendChild(div);
@@ -187,8 +204,12 @@
 
       document.getElementById("menu-toggle").onclick = () => {
         const sidebar = document.getElementById("sidebar");
-        // Alterna a classe 'show' (mostra/esconde)
-        sidebar.classList.toggle("show");
+
+        if (window.innerWidth <= 768) {
+          sidebar.classList.toggle("show-mobile");
+        } else {
+          sidebar.classList.toggle("hidden-desktop");
+        }
       };
 
       async function drawRoute(batch_id) {
@@ -214,25 +235,20 @@
 
         let coordsForBounds = [];
 
-        // Faz o loop calculando a velocidade entre o ponto atual e o anterior
         for (let i = 1; i < points.length; i++) {
           const p1 = points[i - 1];
           const p2 = points[i];
 
-          // Calcula distância e tempo
           const distanceKm = getDistance(p1.lat, p1.lng, p2.lat, p2.lng);
           const timeDiffSec = p2.t - p1.t;
 
           let speedKmH = 0;
-          // Evita divisão por zero caso o equipamento mande dois pontos no mesmo segundo
           if (timeDiffSec > 0) {
-            // (distância em km) / (tempo em horas)
             speedKmH = distanceKm / (timeDiffSec / 3600);
           }
 
           const color = getSpeedColor(speedKmH);
 
-          // Cria a pequena linha ligando apenas estes dois pontos
           const segment = L.polyline(
             [
               [p1.lat, p1.lng],
@@ -241,7 +257,6 @@
             { color: color, weight: 5 },
           );
 
-          // Adiciona o "balão" flutuante (Tooltip) que aparece ao passar o mouse
           segment.bindTooltip(
             `Velocidade: <b>${speedKmH.toFixed(1)} km/h</b>`,
             {
@@ -250,12 +265,10 @@
             },
           );
 
-          // Adiciona o segmento ao grupo
           currentRouteGroup.addLayer(segment);
           coordsForBounds.push([p2.lat, p2.lng]);
         }
 
-        // Centraliza o mapa pegando a área de todos os segmentos desenhados
         if (coordsForBounds.length > 0) {
           map.fitBounds(currentRouteGroup.getBounds());
         }
@@ -272,8 +285,6 @@
           drawRoute(targetBatchId);
         }
       }
-
-      // Aciona o motor
       init();
     </script>
   </body>
