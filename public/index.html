@@ -155,12 +155,9 @@
           div.onclick = () => {
             window.history.pushState({}, "", `?batch_id=${trip.batch_id}`);
             drawRoute(trip.batch_id);
-
             // Se estiver no celular, esconde a barra automaticamente após clicar
             const sidebar = document.getElementById("sidebar");
-            if (window.innerWidth <= 768) {
-              sidebar.classList.remove("show");
-            }
+            sidebar.classList.remove("show");
           };
 
           listDiv.appendChild(div);
