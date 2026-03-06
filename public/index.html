@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard de Telemetria</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        margin: 0;
+        height: 100vh;
+      }
+      #sidebar {
+        width: 300px;
+        background: #f4f4f4;
+        padding: 20px;
+        overflow-y: auto;
+      }
+      #map {
+        flex-grow: 1;
+        height: 100%;
+      }
+      .trip-item {
+        padding: 10px;
+        margin-bottom: 5px;
+        background: white;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+      .trip-item:hover {
+        background: #e0e0e0;
+      }
+      .status {
+        font-size: 0.8em;
+        font-weight: bold;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sidebar">
+      <h2>Viagens</h2>
+      <div id="trip-list">Carregando...</div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      // Inicializa o Mapa apontando pro Brasil
+      const map = L.map("map").setView([-15.7801, -47.9292], 4);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap",
+      }).addTo(map);
+
+      let currentPolyline = null;
+
+      // Carrega a lista do DynamoDB
+      async function loadTrips() {
+        const response = await fetch("/api/trips");
+        const trips = await response.json();
+
+        const listDiv = document.getElementById("trip-list");
+        listDiv.innerHTML = "";
+
+        trips.forEach((trip) => {
+          const div = document.createElement("div");
+          div.className = "trip-item";
+          div.innerHTML = `
+                    <div>ID: ${trip.batch_id.substring(0, 8)}...</div>
+                    <div class="status">Status: ${trip.status}</div>
+                `;
+          // Ao clicar, desenha a rota
+          div.onclick = () => drawRoute(trip.batch_id);
+          listDiv.appendChild(div);
+        });
+      }
+
+      // Busca no Aurora e desenha no Leaflet
+      async function drawRoute(batch_id) {
+        const response = await fetch(`/api/map-data/${batch_id}`);
+        const latlngs = await response.json();
+
+        if (latlngs.length === 0) {
+          alert("Nenhuma coordenada encontrada para esta viagem.");
+          return;
+        }
+
+        // Remove a rota anterior, se houver
+        if (currentPolyline) {
+          map.removeLayer(currentPolyline);
+        }
+
+        // Desenha a nova linha vermelha
+        currentPolyline = L.polyline(latlngs, {
+          color: "red",
+          weight: 4,
+        }).addTo(map);
+
+        // Dá um "zoom" automático para enquadrar a rota inteira
+        map.fitBounds(currentPolyline.getBounds());
+      }
+
+      // Inicia a aplicação
+      loadTrips();
+    </script>
+  </body>
+</html>
