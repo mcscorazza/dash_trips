@@ -52,6 +52,7 @@ app.get('/api/map-data/:batch_id', async (req, res) => {
     res.json(rotaCompleta);
   } catch (error) {
     res.status(500).json({ error: error.message });
+    console.error(error);
   }
 });
 

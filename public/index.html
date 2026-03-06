@@ -85,6 +85,13 @@
       // Busca no Aurora e desenha no Leaflet
       async function drawRoute(batch_id) {
         const response = await fetch(`/api/map-data/${batch_id}`);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert(`Erro ao buscar dados: ${errorData.error}`);
+          return;
+        }
+
         const latlngs = await response.json();
 
         if (latlngs.length === 0) {
