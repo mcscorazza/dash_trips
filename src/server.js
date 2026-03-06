@@ -47,8 +47,13 @@ app.get('/api/map-data/:batch_id', async (req, res) => {
     // Junta os vetores de todos os trechos numa única lista contínua
     let rotaCompleta = [];
     rows.forEach(row => {
-      // O Leaflet espera um array [latitude, longitude]
-      const pontosTrecho = row.geo_points.map(p => [p.lat, p.lng]);
+
+      const pontosTrecho = row.geo_points.map(p => ({
+        lat: p.lat,
+        lng: p.lng,
+        t: p.t
+      }));
+
       rotaCompleta = rotaCompleta.concat(pontosTrecho);
     });
 
