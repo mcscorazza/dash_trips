@@ -8,9 +8,60 @@
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
     <style>
+      /* Estilo do Botão de Menu Flutuante */
+      #menu-toggle {
+        position: absolute;
+        top: 15px;
+        right: 15px; /* Fica no canto superior direito */
+        z-index: 1000;
+        background: white;
+        border: 2px solid rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      #menu-toggle:hover {
+        background: #f4f4f4;
+      }
+
+      /* Estilo da Legenda */
+      #speed-legend {
+        position: absolute;
+        bottom: 20px;
+        right: 15px; /* Fica no canto inferior direito */
+        z-index: 1000;
+        background: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        font-size: 13px;
+        color: #333;
+        line-height: 1.5;
+      }
+      .legend-item i {
+        display: inline-block;
+        width: 15px;
+        height: 15px;
+        margin-right: 8px;
+        border-radius: 3px;
+        vertical-align: text-bottom;
+      }
+
+      /* Comportamento da Barra Lateral no Mobile */
       @media (max-width: 768px) {
         #sidebar {
-          display: none;
+          display: none; /* Escondido por padrão no celular */
+          position: absolute;
+          height: 100vh;
+          z-index: 1001; /* Fica por cima de tudo quando abrir */
+          box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+        }
+        /* Esta classe será acionada pelo JavaScript */
+        #sidebar.show {
+          display: block;
         }
       }
 
@@ -25,7 +76,6 @@
         background: #f4f4f4;
         padding: 20px;
         overflow-y: auto;
-        display: none;
       }
       #map {
         flex-grow: 1;
@@ -57,6 +107,24 @@
 
     <div id="map"></div>
 
+    <button id="menu-toggle">☰ Viagens</button>
+
+    <div id="speed-legend">
+      <strong>Velocidade</strong><br />
+      <div class="legend-item">
+        <i style="background: #ff0000"></i> > 40 km/h
+      </div>
+      <div class="legend-item">
+        <i style="background: #ff9900"></i> 20 - 40 km/h
+      </div>
+      <div class="legend-item">
+        <i style="background: #33cc33"></i> 5 - 20 km/h
+      </div>
+      <div class="legend-item">
+        <i style="background: #3388ff"></i> 0 - 5 km/h
+      </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
       // Inicializa o Mapa apontando pro Brasil
@@ -84,7 +152,17 @@
                     <div class="status">Status: ${trip.status}</div>
                 `;
           // Ao clicar, desenha a rota
-          div.onclick = () => drawRoute(trip.batch_id);
+          div.onclick = () => {
+            window.history.pushState({}, "", `?batch_id=${trip.batch_id}`);
+            drawRoute(trip.batch_id);
+
+            // Se estiver no celular, esconde a barra automaticamente após clicar
+            const sidebar = document.getElementById("sidebar");
+            if (window.innerWidth <= 768) {
+              sidebar.classList.remove("show");
+            }
+          };
+
           listDiv.appendChild(div);
         });
       }
@@ -109,6 +187,12 @@
         if (speed > 5) return "#33cc33"; // Verde (Devagar/Cruzeiro)
         return "#3388ff"; // Azul (Muito devagar ou Parado)
       }
+
+      document.getElementById("menu-toggle").onclick = () => {
+        const sidebar = document.getElementById("sidebar");
+        // Alterna a classe 'show' (mostra/esconde)
+        sidebar.classList.toggle("show");
+      };
 
       async function drawRoute(batch_id) {
         const response = await fetch(`/api/map-data/${batch_id}`);
