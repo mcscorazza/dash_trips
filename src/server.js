@@ -20,12 +20,15 @@ const pool = new Pool({
   }
 });
 
-// Rota 1: Retorna a lista de viagens do DynamoDB
+// Rota 1: Retorna a lista de viagens da nova tabela do DynamoDB
 app.get('/api/trips', async (req, res) => {
   try {
-    // Para o teste, um Scan resolve bem. Em prod, usaríamos um Query no GSI.
-    const result = await dynamo.scan({ TableName: 'trips' }).promise();
-    res.json(result.Items);
+    const result = await dynamo.scan({ TableName: 'trip_state_tracker' }).promise();
+
+    // Ordena as viagens para as mais recentes aparecerem no topo da lista
+    const trips = result.Items.sort((a, b) => (b.started_at || 0) - (a.started_at || 0));
+
+    res.json(trips);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -35,7 +38,7 @@ app.get('/api/trips', async (req, res) => {
 app.get('/api/map-data/:batch_id', async (req, res) => {
   try {
     const { batch_id } = req.params;
-    // Busca todos os trechos da viagem ordenados cronologicamente
+
     const query = `
             SELECT geo_points 
             FROM trip_geolocations 
@@ -44,16 +47,13 @@ app.get('/api/map-data/:batch_id', async (req, res) => {
         `;
     const { rows } = await pool.query(query, [batch_id]);
 
-    // Junta os vetores de todos os trechos numa única lista contínua
     let rotaCompleta = [];
     rows.forEach(row => {
-
       const pontosTrecho = row.geo_points.map(p => ({
         lat: p.lat,
         lng: p.lng,
         t: p.t
       }));
-
       rotaCompleta = rotaCompleta.concat(pontosTrecho);
     });
 
