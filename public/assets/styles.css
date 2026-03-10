@@ -13,7 +13,7 @@ body {
 
 #menu-toggle {
   position: absolute;
-  top: 55px;
+  top: 200px;
   right: 15px;
   z-index: 1000;
   background: white;
