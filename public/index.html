@@ -7,314 +7,54 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
+
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        display: flex;
-        margin: 0;
-        height: 100vh;
-      }
-      #map {
-        flex-grow: 1;
-        height: 100%;
-      }
-      #menu-toggle {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        z-index: 1000;
-        background: white;
-        border: 2px solid rgba(0, 0, 0, 0.2);
-        border-radius: 4px;
-        padding: 8px 12px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      }
-      #menu-toggle:hover {
-        background: #f4f4f4;
-      }
-      #speed-legend {
-        position: absolute;
-        bottom: 20px;
-        right: 15px;
-        z-index: 1000;
-        background: white;
-        padding: 10px 15px;
-        border-radius: 5px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        font-size: 13px;
-        color: #333;
-        line-height: 1.5;
-      }
-      .legend-item i {
-        display: inline-block;
-        width: 15px;
-        height: 15px;
-        margin-right: 8px;
-        border-radius: 3px;
-        vertical-align: text-bottom;
-      }
-      #sidebar {
-        width: 300px;
-        background: #f4f4f4;
-        padding: 20px;
-        overflow-y: auto;
-        z-index: 1001;
-        transition: transform 0.3s ease;
-      }
-      #sidebar.hidden-desktop {
-        display: none;
-      }
-
-      @media (max-width: 768px) {
-        #sidebar {
-          position: absolute;
-          height: 100vh;
-          transform: translateX(-100%);
-          box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
-        }
-        #sidebar.show-mobile {
-          transform: translateX(0);
-        }
-      }
-
-      /* Estilos da Lista de Viagens */
-      .trip-item {
-        padding: 12px;
-        margin-bottom: 8px;
-        background: white;
-        cursor: pointer;
-        border-radius: 6px;
-        border: 1px solid #ddd;
-        border-left: 5px solid #ccc;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      }
-      .trip-item:hover {
-        background: #f9f9f9;
-      }
-      .trip-item.PENDING {
-        border-left-color: #ff9900;
-      }
-      .trip-item.CONSOLIDATED {
-        border-left-color: #33cc33;
-      }
-
-      .status-badge {
-        align-self: flex-start;
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 0.75em;
-        font-weight: bold;
-        color: white;
-        text-transform: uppercase;
-      }
-      .status-badge.PENDING {
-        background-color: #ff9900;
-      }
-      .status-badge.CONSOLIDATED {
-        background-color: #33cc33;
-      }
-
-      .trip-city {
-        font-size: 0.95em;
-        font-weight: bold;
-        color: #333;
-      }
-      .trip-id {
-        font-size: 0.75em;
-        color: #888;
-      }
-    </style>
+    <link rel="stylesheet" href="assets/styles.css">
   </head>
-  <body>
+<body>
     <div id="sidebar">
       <h2>Viagens</h2>
       <div id="trip-list">Carregando...</div>
     </div>
 
-    <div id="map"></div>
-    <button id="menu-toggle">☰ Viagens</button>
+    <div id="main-content">
+      
+      <div class="top-cards">
+        <div class="card">
+          <div class="card-title">Distância Total</div>
+          <div class="card-value" id="card-distance">-- <span class="card-unit">km</span></div>
+        </div>
+        <div class="card" style="border-left-color: #ff9900;">
+          <div class="card-title">Velocidade Máxima</div>
+          <div class="card-value" id="card-max-speed">-- <span class="card-unit">km/h</span></div>
+        </div>
+        <div class="card" style="border-left-color: #e74c3c;">
+          <div class="card-title">Pico MicroStrain</div>
+          <div class="card-value" id="card-strain">-- <span class="card-unit">µε</span></div>
+        </div>
+        <div class="card" style="border-left-color: #33cc33;">
+          <div class="card-title">Tempo de Viagem</div>
+          <div class="card-value" id="card-time">--:-- <span class="card-unit">h:m</span></div>
+        </div>
+      </div>
 
-    <div id="speed-legend">
-      <strong>Velocidade</strong><br />
-      <div class="legend-item">
-        <i style="background: #ff0000"></i> > 40 km/h
-      </div>
-      <div class="legend-item">
-        <i style="background: #ff9900"></i> 20 - 40 km/h
-      </div>
-      <div class="legend-item">
-        <i style="background: #33cc33"></i> 5 - 20 km/h
-      </div>
-      <div class="legend-item">
-        <i style="background: #3388ff"></i> 0 - 5 km/h
+      <div id="map-wrapper">
+        <div id="map"></div>
+        
+        <div id="speed-legend">
+          <strong>Velocidade</strong><br />
+          <div class="legend-item"><i style="background: #ff0000"></i> > 40 km/h</div>
+          <div class="legend-item"><i style="background: #ff9900"></i> 20 - 40 km/h</div>
+          <div class="legend-item"><i style="background: #33cc33"></i> 5 - 20 km/h</div>
+          <div class="legend-item"><i style="background: #3388ff"></i> 0 - 5 km/h</div>
+        </div>
       </div>
     </div>
-
+    </body>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-      const map = L.map("map").setView([-15.7801, -47.9292], 4);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "© OpenStreetMap",
-      }).addTo(map);
-
-      let currentRouteGroup = L.featureGroup().addTo(map);
-
-      async function loadTrips() {
-        const response = await fetch("/api/trips");
-        const trips = await response.json();
-
-        const listDiv = document.getElementById("trip-list");
-        listDiv.innerHTML = "";
-
-        trips.forEach((trip) => {
-          const div = document.createElement("div");
-          div.className = `trip-item ${trip.status}`;
-
-          // Lógica inteligente para mostrar as cidades
-          let locationText = "📍 Aguardando localização...";
-
-          if (
-            trip.status === "CONSOLIDATED" &&
-            trip.city_start &&
-            trip.city_end
-          ) {
-            locationText = `📍 ${trip.city_start} ➔ ${trip.city_end}`;
-          } else if (trip.city_start && trip.city_current) {
-            locationText = `📍 ${trip.city_start} ➔ ${trip.city_current} (Atual)`;
-          } else if (trip.city_start) {
-            locationText = `📍 ${trip.city_start}`;
-          }
-
-          div.innerHTML = `
-            <div class="trip-city">${locationText}</div>
-            <div class="trip-id">ID: ${trip.batch_id.substring(0, 8)}...</div>
-            <div class="status-badge ${trip.status}">${trip.status}</div>
-          `;
-
-          div.onclick = () => {
-            window.history.pushState({}, "", `?batch_id=${trip.batch_id}`);
-            drawRoute(trip.batch_id);
-            if (window.innerWidth <= 768) {
-              document
-                .getElementById("sidebar")
-                .classList.remove("show-mobile");
-            }
-          };
-
-          listDiv.appendChild(div);
-        });
-      }
-
-      function getDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = ((lat2 - lat1) * Math.PI) / 180;
-        const dLon = ((lon2 - lon1) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos((lat1 * Math.PI) / 180) *
-            Math.cos((lat2 * Math.PI) / 180) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-      }
-
-      function getSpeedColor(speed) {
-        if (speed > 40) return "#ff0000";
-        if (speed > 20) return "#ff9900";
-        if (speed > 5) return "#33cc33";
-        return "#3388ff";
-      }
-
-      document.getElementById("menu-toggle").onclick = () => {
-        const sidebar = document.getElementById("sidebar");
-        if (window.innerWidth <= 768) {
-          sidebar.classList.toggle("show-mobile");
-        } else {
-          sidebar.classList.toggle("hidden-desktop");
-        }
-      };
-
-      async function drawRoute(batch_id) {
-        const response = await fetch(`/api/map-data/${batch_id}`);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          alert(`Erro ao buscar dados: ${errorData.error}`);
-          return;
-        }
-
-        const points = await response.json();
-
-        if (points.length < 2) {
-          alert(
-            "Pontos insuficientes para traçar uma rota e calcular velocidade.",
-          );
-          return;
-        }
-
-        currentRouteGroup.clearLayers();
-        let coordsForBounds = [];
-
-        for (let i = 1; i < points.length; i++) {
-          const p1 = points[i - 1];
-          const p2 = points[i];
-
-          const distanceKm = getDistance(p1.lat, p1.lng, p2.lat, p2.lng);
-          const timeDiffSec = p2.t - p1.t;
-
-          let speedKmH = 0;
-          if (timeDiffSec > 0) {
-            speedKmH = distanceKm / (timeDiffSec / 3600);
-          }
-
-          const color = getSpeedColor(speedKmH);
-
-          const segment = L.polyline(
-            [
-              [p1.lat, p1.lng],
-              [p2.lat, p2.lng],
-            ],
-            { color: color, weight: 5 },
-          );
-
-          segment.bindTooltip(
-            `Velocidade: <b>${speedKmH.toFixed(1)} km/h</b>`,
-            { sticky: true, className: "speed-tooltip" },
-          );
-
-          currentRouteGroup.addLayer(segment);
-          coordsForBounds.push([p2.lat, p2.lng]);
-        }
-
-        if (coordsForBounds.length > 0) {
-          map.fitBounds(currentRouteGroup.getBounds());
-        }
-      }
-
-      async function init() {
-        await loadTrips();
-        const params = new URLSearchParams(window.location.search);
-        // Correção aqui: O seu pushState salva 'batch_id', então precisamos ler 'batch_id'
-        const targetBatchId = params.get("batch_id");
-
-        if (targetBatchId) {
-          drawRoute(targetBatchId);
-        }
-      }
-
-      init();
-    </script>
+    <script src="assets/scripts.js"></script>
   </body>
 </html>
