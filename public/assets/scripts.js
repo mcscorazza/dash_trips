@@ -93,14 +93,17 @@ async function drawRoute(batch_id) {
   const points = await response.json();
 
   if (points.length < 2) {
-    alert(
-      "Pontos insuficientes para traçar uma rota e calcular velocidade.",
-    );
+    alert("Pontos insuficientes para traçar uma rota.");
     return;
   }
 
   currentRouteGroup.clearLayers();
   let coordsForBounds = [];
+
+  let totalDistance = 0;
+  let maxSpeed = 0;
+  let startTime = points[0].t;
+  let endTime = points[points.length - 1].t;
 
   for (let i = 1; i < points.length; i++) {
     const p1 = points[i - 1];
@@ -114,13 +117,13 @@ async function drawRoute(batch_id) {
       speedKmH = distanceKm / (timeDiffSec / 3600);
     }
 
+    totalDistance += distanceKm;
+    if (speedKmH > maxSpeed) maxSpeed = speedKmH;
+
     const color = getSpeedColor(speedKmH);
 
     const segment = L.polyline(
-      [
-        [p1.lat, p1.lng],
-        [p2.lat, p2.lng],
-      ],
+      [[p1.lat, p1.lng], [p2.lat, p2.lng]],
       { color: color, weight: 5 },
     );
 
@@ -136,14 +139,22 @@ async function drawRoute(batch_id) {
   if (coordsForBounds.length > 0) {
     map.fitBounds(currentRouteGroup.getBounds());
   }
+
+  document.getElementById("card-distance").innerHTML = `${totalDistance.toFixed(2)} <span class="card-unit">km</span>`;
+  document.getElementById("card-max-speed").innerHTML = `${maxSpeed.toFixed(1)} <span class="card-unit">km/h</span>`;
+
+  const totalSeconds = endTime - startTime;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  document.getElementById("card-time").innerHTML = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} <span class="card-unit">h:m</span>`;
 }
 
 async function init() {
   await loadTrips();
   const params = new URLSearchParams(window.location.search);
-  const targetBatchId = params.get("batch_id");
-
+  const targetBatchId = params.get("batch_id") || params.get("id");
   if (targetBatchId) {
+    console.log("Carregando viagem direta da URL:", targetBatchId);
     drawRoute(targetBatchId);
   }
 }
