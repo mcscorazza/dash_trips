@@ -104,6 +104,10 @@ async function drawRoute(batch_id) {
   let maxSpeed = 0;
   let startTime = points[0].t;
   let endTime = points[points.length - 1].t;
+  let speedBuffer = [];
+  const WINDOW_SIZE = 10;
+  const MAX_REALISTIC_SPEED = 100;
+  let lastValidSpeed = 0;
 
   for (let i = 1; i < points.length; i++) {
     const p1 = points[i - 1];
@@ -112,15 +116,28 @@ async function drawRoute(batch_id) {
     const distanceKm = getDistance(p1.lat, p1.lng, p2.lat, p2.lng);
     const timeDiffSec = p2.t - p1.t;
 
-    let speedKmH = 0;
+    let rawSpeedKmH = 0;
     if (timeDiffSec > 0) {
-      speedKmH = distanceKm / (timeDiffSec / 3600);
+      rawSpeedKmH = distanceKm / (timeDiffSec / 3600);
     }
 
-    totalDistance += distanceKm;
-    if (speedKmH > maxSpeed) maxSpeed = speedKmH;
+    if (rawSpeedKmH > MAX_REALISTIC_SPEED || timeDiffSec <= 0) {
+      rawSpeedKmH = lastValidSpeed;
+    } else {
+      lastValidSpeed = rawSpeedKmH;
+    }
 
-    const color = getSpeedColor(speedKmH);
+    speedBuffer.push(rawSpeedKmH);
+    if (speedBuffer.length > WINDOW_SIZE) {
+      speedBuffer.shift();
+    }
+
+    let smoothedSpeed = speedBuffer.reduce((a, b) => a + b, 0) / speedBuffer.length;
+
+    totalDistance += distanceKm;
+    if (smoothedSpeed > maxSpeed) maxSpeed = smoothedSpeed;
+
+    const color = getSpeedColor(smoothedSpeed);
 
     const segment = L.polyline(
       [[p1.lat, p1.lng], [p2.lat, p2.lng]],
@@ -128,7 +145,7 @@ async function drawRoute(batch_id) {
     );
 
     segment.bindTooltip(
-      `Velocidade: <b>${speedKmH.toFixed(1)} km/h</b>`,
+      `Velocidade: <b>${smoothedSpeed.toFixed(1)} km/h</b>`,
       { sticky: true, className: "speed-tooltip" },
     );
 
