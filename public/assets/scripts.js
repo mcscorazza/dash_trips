@@ -105,8 +105,8 @@ async function drawRoute(batch_id) {
   let startTime = points[0].t;
   let endTime = points[points.length - 1].t;
   let speedBuffer = [];
-  const WINDOW_SIZE = 10;
-  const MAX_REALISTIC_SPEED = 100;
+  const WINDOW_SIZE = 5;
+  const MAX_REALISTIC_SPEED = 120;
   let lastValidSpeed = 0;
 
   for (let i = 1; i < points.length; i++) {
