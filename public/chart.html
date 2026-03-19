@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Teste ECharts - Strain Gauge</title>
+    <title>Dashboard iMov - Strain Gauge</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f4f7f6;
+        background-color: #e9ecef;
         margin: 0;
         padding: 20px;
         display: flex;
@@ -16,129 +16,235 @@
       }
       .card {
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        padding: 24px;
         width: 100%;
         max-width: 1200px;
       }
-      /* Esta é a div onde a mágica acontece */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+      h2 {
+        color: #2c3e50;
+        margin: 0;
+      }
+      /* Estilo dos Controles */
+      .controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        margin-bottom: 20px;
+      }
+      .input-group {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+      }
+      .input-group label {
+        font-size: 12px;
+        font-weight: bold;
+        color: #6c757d;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+      }
+      input {
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 14px;
+        min-width: 250px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      input:focus {
+        border-color: #3498db;
+      }
+      button {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-top: 20px; /* Alinha com os inputs */
+      }
+      button:hover {
+        background-color: #2980b9;
+      }
+      /* Div do Gráfico */
       #chart-container {
         width: 100%;
         height: 500px;
+        border: 1px solid #eee;
+        border-radius: 8px;
       }
     </style>
   </head>
   <body>
     <div class="card">
-      <h2 style="color: #333; margin-top: 0">
-        Análise de Tensão - Strain Gauge (10 Minutos)
-      </h2>
+      <div class="header">
+        <h2>Análise de Tensão - Strain Gauge</h2>
+      </div>
+
+      <div class="controls">
+        <div class="input-group">
+          <label for="batchId">Batch ID (Viagem)</label>
+          <input
+            type="text"
+            id="batchId"
+            value="6669fc9e-95dc-4a0a-b885-81eeb49e8629"
+            placeholder="Ex: 6669fc9e-95dc-4a0a-b885-81eeb49e8629"
+          />
+        </div>
+
+        <div class="input-group">
+          <label for="parquetRef">Referência do Parquet (Trecho)</label>
+          <input
+            type="text"
+            id="parquetRef"
+            value="1qvTeX_1qvToC.parquet"
+            placeholder="Ex: 1qvTeX_1qvToC.parquet"
+          />
+        </div>
+
+        <button id="btnBuscar">Gerar Gráfico</button>
+      </div>
+
       <div id="chart-container"></div>
     </div>
 
     <script>
-      // 1. Inicializa o gráfico na Div
       const chartDom = document.getElementById("chart-container");
       const myChart = echarts.init(chartDom);
 
-      // Mostra um "Carregando..." enquanto o fetch não termina
-      myChart.showLoading({
-        text: "Baixando dados do Parquet...",
-        color: "#1E90FF",
-      });
+      function carregarGrafico() {
+        const batchId = document.getElementById("batchId").value.trim();
+        const parquetRef = document.getElementById("parquetRef").value.trim();
 
-      // 2. A URL mágica da sua API
-      const API_URL =
-        "https://trips.svxdigital.com/api/chart/6669fc9e-95dc-4a0a-b885-81eeb49e8629/1qvTxt_1qvU7Y.parquet";
+        if (!batchId || !parquetRef) {
+          alert("Por favor, preencha o Batch ID e a Referência do Parquet.");
+          return;
+        }
 
-      fetch(API_URL)
-        .then((response) => response.json())
-        .then((data) => {
-          // Esconde o carregando
-          myChart.hideLoading();
+        const API_URL = `https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`;
 
-          // 3. Separa o JSON em arrays individuais para o gráfico
-          // O JavaScript usa milissegundos, então multiplicamos o seu 't' por 1000
-          const eixoX_Tempo = data.map((item) => {
-            let dataFormatada = new Date(item.t * 1000);
-            return dataFormatada.toLocaleTimeString("pt-BR"); // Ex: 14:30:05
-          });
-
-          const eixoY_Max = data.map((item) => item.max_strain);
-          const eixoY_Min = data.map((item) => item.min_strain);
-          const eixoY_Avg = data.map((item) => item.avg_strain);
-
-          // 4. Configura o visual e o comportamento do gráfico
-          const option = {
-            tooltip: {
-              trigger: "axis", // Mostra os 3 valores ao passar o mouse numa linha vertical
-              axisPointer: { type: "cross" },
-            },
-            legend: {
-              data: ["Tração Máxima", "Média", "Compressão Máxima"],
-              top: "bottom",
-            },
-            grid: {
-              left: "3%",
-              right: "4%",
-              bottom: "15%",
-              top: "5%",
-              containLabel: true,
-            },
-            // Adiciona um controle de ZOOM na base do gráfico! (Essencial para 600 pontos)
-            dataZoom: [
-              { type: "inside", start: 0, end: 100 },
-              { type: "slider", start: 0, end: 100 },
-            ],
-            xAxis: {
-              type: "category",
-              boundaryGap: false,
-              data: eixoX_Tempo,
-            },
-            yAxis: {
-              type: "value",
-              name: "Eng(kgf)",
-              scale: true, // Permite que o eixo Y não comece do zero, focando na variação
-            },
-            series: [
-              {
-                name: "Tração Máxima",
-                type: "line",
-                data: eixoY_Max,
-                color: "#e74c3c", // Vermelho
-                lineStyle: { width: 2 },
-                showSymbol: false, // Esconde as bolinhas para o gráfico ficar limpo
-              },
-              {
-                name: "Média",
-                type: "line",
-                data: eixoY_Avg,
-                color: "#f1c40f", // Amarelo/Dourado
-                lineStyle: { width: 2, type: "dashed" }, // Linha tracejada
-                showSymbol: false,
-              },
-              {
-                name: "Compressão Máxima",
-                type: "line",
-                data: eixoY_Min,
-                color: "#3498db", // Azul
-                lineStyle: { width: 2 },
-                showSymbol: false,
-              },
-            ],
-          };
-
-          // 5. Renderiza a obra de arte
-          myChart.setOption(option);
-        })
-        .catch((error) => {
-          console.error("Erro ao buscar os dados:", error);
-          myChart.hideLoading();
-          alert("Erro ao carregar o gráfico. Verifique o console.");
+        myChart.clear();
+        myChart.showLoading({
+          text: "Buscando dados no banco de dados...",
+          color: "#3498db",
         });
 
-      // Garante que o gráfico se redimensione se o usuário mudar o tamanho da janela
+        fetch(API_URL)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(
+                `Erro ${response.status}: Trecho não encontrado no banco de dados.`,
+              );
+            }
+            return response.json();
+          })
+          .then((data) => {
+            myChart.hideLoading();
+
+            if (!data || data.length === 0) {
+              alert("Nenhum dado encontrado para este trecho.");
+              return;
+            }
+
+            const eixoX_Tempo = data.map((item) => {
+              let dataFormatada = new Date(item.t * 1000);
+              return dataFormatada.toLocaleTimeString("pt-BR");
+            });
+
+            const eixoY_Max = data.map((item) => item.max_strain);
+            const eixoY_Min = data.map((item) => item.min_strain);
+            const eixoY_Avg = data.map((item) => item.avg_strain);
+
+            const option = {
+              tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
+              legend: {
+                data: ["Tração Máxima", "Média", "Compressão Máxima"],
+                top: "bottom",
+              },
+              grid: {
+                left: "3%",
+                right: "4%",
+                bottom: "15%",
+                top: "5%",
+                containLabel: true,
+              },
+              dataZoom: [
+                { type: "inside", start: 0, end: 100 },
+                { type: "slider", start: 0, end: 100 },
+              ],
+              xAxis: {
+                type: "category",
+                boundaryGap: false,
+                data: eixoX_Tempo,
+              },
+              yAxis: { type: "value", name: "Eng(kgf)", scale: true },
+              series: [
+                {
+                  name: "Tração Máxima",
+                  type: "line",
+                  data: eixoY_Max,
+                  color: "#e74c3c",
+                  lineStyle: { width: 2 },
+                  showSymbol: false,
+                },
+                {
+                  name: "Média",
+                  type: "line",
+                  data: eixoY_Avg,
+                  color: "#f1c40f",
+                  lineStyle: { width: 2, type: "dashed" },
+                  showSymbol: false,
+                },
+                {
+                  name: "Compressão Máxima",
+                  type: "line",
+                  data: eixoY_Min,
+                  color: "#3498db",
+                  lineStyle: { width: 2 },
+                  showSymbol: false,
+                },
+              ],
+            };
+
+            myChart.setOption(option);
+          })
+          .catch((error) => {
+            console.error("Erro na requisição:", error);
+            myChart.hideLoading();
+            alert(error.message);
+          });
+      }
+
+      document
+        .getElementById("btnBuscar")
+        .addEventListener("click", carregarGrafico);
+
+      document
+        .getElementById("parquetRef")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            carregarGrafico();
+          }
+        });
+
       window.addEventListener("resize", () => {
         myChart.resize();
       });
