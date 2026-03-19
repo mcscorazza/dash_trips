@@ -96,8 +96,16 @@ app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
     let record = null;
 
     const chartData = [];
+    let primeiraLinha = true;
 
     while (record = await cursor.next()) {
+
+      if (primeiraLinha) {
+        console.log("\n🔍 ESTRUTURA REAL DO PARQUET NO NODE.JS:");
+        console.dir(record, { depth: null, colors: true });
+        primeiraLinha = false;
+      }
+
       if (record.sensors && Array.isArray(record.sensors) && record.sensors.length > 0) {
         const primeiroSensor = record.sensors[0];
         const leiturasBrutas = primeiroSensor.value;
