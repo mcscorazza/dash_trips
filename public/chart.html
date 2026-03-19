@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teste ECharts - Strain Gauge</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+      }
+      .card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        width: 100%;
+        max-width: 1200px;
+      }
+      /* Esta é a div onde a mágica acontece */
+      #chart-container {
+        width: 100%;
+        height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2 style="color: #333; margin-top: 0">
+        Análise de Tensão - Strain Gauge (10 Minutos)
+      </h2>
+      <div id="chart-container"></div>
+    </div>
+
+    <script>
+      // 1. Inicializa o gráfico na Div
+      const chartDom = document.getElementById("chart-container");
+      const myChart = echarts.init(chartDom);
+
+      // Mostra um "Carregando..." enquanto o fetch não termina
+      myChart.showLoading({
+        text: "Baixando dados do Parquet...",
+        color: "#1E90FF",
+      });
+
+      // 2. A URL mágica da sua API
+      const API_URL =
+        "https://trips.svxdigital.com/api/chart/6669fc9e-95dc-4a0a-b885-81eeb49e8629/1qvTeX_1qvToC.parquet";
+
+      fetch(API_URL)
+        .then((response) => response.json())
+        .then((data) => {
+          // Esconde o carregando
+          myChart.hideLoading();
+
+          // 3. Separa o JSON em arrays individuais para o gráfico
+          // O JavaScript usa milissegundos, então multiplicamos o seu 't' por 1000
+          const eixoX_Tempo = data.map((item) => {
+            let dataFormatada = new Date(item.t * 1000);
+            return dataFormatada.toLocaleTimeString("pt-BR"); // Ex: 14:30:05
+          });
+
+          const eixoY_Max = data.map((item) => item.max_strain);
+          const eixoY_Min = data.map((item) => item.min_strain);
+          const eixoY_Avg = data.map((item) => item.avg_strain);
+
+          // 4. Configura o visual e o comportamento do gráfico
+          const option = {
+            tooltip: {
+              trigger: "axis", // Mostra os 3 valores ao passar o mouse numa linha vertical
+              axisPointer: { type: "cross" },
+            },
+            legend: {
+              data: ["Tração Máxima", "Média", "Compressão Máxima"],
+              top: "bottom",
+            },
+            grid: {
+              left: "3%",
+              right: "4%",
+              bottom: "15%",
+              top: "5%",
+              containLabel: true,
+            },
+            // Adiciona um controle de ZOOM na base do gráfico! (Essencial para 600 pontos)
+            dataZoom: [
+              { type: "inside", start: 0, end: 100 },
+              { type: "slider", start: 0, end: 100 },
+            ],
+            xAxis: {
+              type: "category",
+              boundaryGap: false,
+              data: eixoX_Tempo,
+            },
+            yAxis: {
+              type: "value",
+              name: "Eng(kgf)",
+              scale: true, // Permite que o eixo Y não comece do zero, focando na variação
+            },
+            series: [
+              {
+                name: "Tração Máxima",
+                type: "line",
+                data: eixoY_Max,
+                color: "#e74c3c", // Vermelho
+                lineStyle: { width: 2 },
+                showSymbol: false, // Esconde as bolinhas para o gráfico ficar limpo
+              },
+              {
+                name: "Média",
+                type: "line",
+                data: eixoY_Avg,
+                color: "#f1c40f", // Amarelo/Dourado
+                lineStyle: { width: 2, type: "dashed" }, // Linha tracejada
+                showSymbol: false,
+              },
+              {
+                name: "Compressão Máxima",
+                type: "line",
+                data: eixoY_Min,
+                color: "#3498db", // Azul
+                lineStyle: { width: 2 },
+                showSymbol: false,
+              },
+            ],
+          };
+
+          // 5. Renderiza a obra de arte
+          myChart.setOption(option);
+        })
+        .catch((error) => {
+          console.error("Erro ao buscar os dados:", error);
+          myChart.hideLoading();
+          alert("Erro ao carregar o gráfico. Verifique o console.");
+        });
+
+      // Garante que o gráfico se redimensione se o usuário mudar o tamanho da janela
+      window.addEventListener("resize", () => {
+        myChart.resize();
+      });
+    </script>
+  </body>
+</html>
