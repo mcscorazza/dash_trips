@@ -1,13 +1,17 @@
 require('dotenv').config();
 const express = require('express');
+const parquet = require('parquetjs-lite');
 const AWS = require('aws-sdk');
 const { Pool } = require('pg');
+const fs = require('fs');
 const path = require('path');
 
 const app = express();
 app.use(express.static('public'));
 
 const dynamo = new AWS.DynamoDB.DocumentClient({ region: 'sa-east-1' });
+const s3 = new AWS.S3({ region: process.env.AWS_DEFAULT_REGION || 'sa-east-1' });
+const BUCKET_NAME = process.env.BUCKET_NAME || 'trips-raw-data';
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -20,12 +24,10 @@ const pool = new Pool({
   }
 });
 
-// Rota 1: Retorna a lista de viagens da nova tabela do DynamoDB
 app.get('/api/trips', async (req, res) => {
   try {
     const result = await dynamo.scan({ TableName: 'trip_state_tracker' }).promise();
 
-    // Ordena as viagens para as mais recentes aparecerem no topo da lista
     const trips = result.Items.sort((a, b) => (b.started_at || 0) - (a.started_at || 0));
 
     res.json(trips);
@@ -34,7 +36,6 @@ app.get('/api/trips', async (req, res) => {
   }
 });
 
-// Rota 2: Retorna os pontos do Aurora unindo todos os trechos daquela viagem
 app.get('/api/map-data/:batch_id', async (req, res) => {
   try {
     const { batch_id } = req.params;
@@ -61,6 +62,63 @@ app.get('/api/map-data/:batch_id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
     console.error(error);
+  }
+});
+
+// ==========================================
+// ROTA DE DOWNSAMPLING DO PARQUET
+// ==========================================
+app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
+  const { batch_id, parquet_ref } = req.params;
+
+  const s3Key = `consolidated/batch_id=${batch_id}/${parquet_ref}`;
+  const localFilePath = path.join('/tmp', parquet_ref);
+
+  try {
+    console.log(`Baixando Parquet do S3: ${s3Key}...`);
+    const s3File = await s3.getObject({ Bucket: BUCKET_NAME, Key: s3Key }).promise();
+    fs.writeFileSync(localFilePath, s3File.Body);
+
+    // 2. Abre o arquivo Parquet
+    let reader = await parquet.ParquetReader.openFile(localFilePath);
+    let cursor = reader.getCursor();
+    let record = null;
+
+    const chartData = [];
+
+    while (record = await cursor.next()) {
+      if (record.sensors && Array.isArray(record.sensors) && record.sensors.length > 0) {
+        const primeiroSensor = record.sensors[0];
+        const leiturasBrutas = primeiroSensor.value;
+        const timestamp = primeiroSensor.timestamp;
+        if (leiturasBrutas && Array.isArray(leiturasBrutas) && leiturasBrutas.length > 0) {
+          const picoMaximo = Math.max(...leiturasBrutas);
+          const picoMinimo = Math.min(...leiturasBrutas);
+          const soma = leiturasBrutas.reduce((a, b) => a + b, 0);
+          const media = soma / leiturasBrutas.length;
+
+          chartData.push({
+            t: timestamp,
+            max_strain: picoMaximo,
+            min_strain: picoMinimo,
+            avg_strain: parseFloat(media.toFixed(2))
+          });
+        }
+      }
+    }
+    await reader.close();
+    fs.unlinkSync(localFilePath);
+    console.log(`Sucesso! 120.000 pontos reduzidos para ${chartData.length} pontos.`);
+    res.json(chartData);
+
+  } catch (error) {
+    console.error("Erro ao processar o Parquet:", error);
+
+    if (fs.existsSync(localFilePath)) {
+      fs.unlinkSync(localFilePath);
+    }
+
+    res.status(500).json({ error: "Falha ao processar os dados de telemetria." });
   }
 });
 
