@@ -1,18 +1,11 @@
 require('dotenv').config();
 const express = require('express');
-const parquet = require('parquetjs-lite');
-const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, ScanCommand } = require("@aws-sdk/lib-dynamodb");
 const { Pool } = require('pg');
-const fs = require('fs');
-const path = require('path');
 
 const app = express();
 app.use(express.static('public'));
-
-const s3 = new S3Client({ region: process.env.AWS_DEFAULT_REGION || 'sa-east-1' });
-const BUCKET_NAME = process.env.BUCKET_NAME || 'trips-raw-data';
 
 const dbClient = new DynamoDBClient({ region: process.env.AWS_DEFAULT_REGION || 'sa-east-1' });
 const dynamo = DynamoDBDocumentClient.from(dbClient);
@@ -69,86 +62,32 @@ app.get('/api/map-data/:batch_id', async (req, res) => {
   }
 });
 
-// ==========================================
-// ROTA DE DOWNSAMPLING DO PARQUET
-// ==========================================
 app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
   const { batch_id, parquet_ref } = req.params;
 
-  const s3Key = `consolidated/batch_id=${batch_id}/${parquet_ref}`;
-  const localFilePath = path.join('/tmp', parquet_ref);
-
   try {
-    console.log(`Baixando Parquet do S3: ${s3Key}...`);
-    const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: s3Key });
-    const response = await s3.send(command);
+    console.log(`Buscando dados do gráfico no RDS para: ${parquet_ref}`);
 
-    const fileStream = fs.createWriteStream(localFilePath);
-    response.Body.pipe(fileStream);
+    const query = `
+            SELECT chart_data 
+            FROM trip_geolocations 
+            WHERE batch_id = $1 AND parquet_ref = $2
+        `;
 
-    await new Promise((resolve, reject) => {
-      fileStream.on("finish", resolve);
-      fileStream.on("error", reject);
-    });
+    const result = await db.query(query, [batch_id, parquet_ref]);
 
-    let reader = await parquet.ParquetReader.openFile(localFilePath);
-    let cursor = reader.getCursor();
-    let record = null;
+    if (result.rows.length > 0) {
+      const jsonData = result.rows[0].chart_data;
 
-    const chartData = [];
-
-    while (record = await cursor.next()) {
-      if (record.sensors && record.sensors.list && Array.isArray(record.sensors.list)) {
-        const sensorAlvo = record.sensors.list.find(s => s.element && s.element.id === 'Eng(kgf)');
-
-        if (sensorAlvo && sensorAlvo.element && sensorAlvo.element.value && sensorAlvo.element.value.list) {
-          const elementoReal = sensorAlvo.element;
-          const timestamp = parseInt(elementoReal.timestamp) || record.device_ts;
-
-          const leiturasBrutas = elementoReal.value.list
-            .map(item => parseFloat(item.element))
-            .filter(num => !isNaN(num));
-
-          if (leiturasBrutas.length > 0) {
-            const picoMaximo = Math.max(...leiturasBrutas);
-            const picoMinimo = Math.min(...leiturasBrutas);
-            const soma = leiturasBrutas.reduce((a, b) => a + b, 0);
-            const media = soma / leiturasBrutas.length;
-
-            chartData.push({
-              t: timestamp,
-              max_strain: isNaN(picoMaximo) ? 0 : parseFloat(picoMaximo.toFixed(2)),
-              min_strain: isNaN(picoMinimo) ? 0 : parseFloat(picoMinimo.toFixed(2)),
-              avg_strain: isNaN(media) ? 0 : parseFloat(media.toFixed(2))
-            });
-          }
-          else {
-            if (timestamp === 1698201234 || timestamp === 1698200991) {
-              console.log(`\n🕵️ SUPER DETETIVE - TEMPO ${timestamp}:`);
-              console.log("O que o Node.js está a ler na lista de valores?");
-              console.dir(elementoReal.value.list.slice(0, 3), { depth: null, colors: true });
-            }
-          }
-        }
-        else {
-          console.log(`📡 Tempo ${record.ts}: Pacote recebido sem o sensor de Strain Gauge.`);
-        }
-      }
+      console.log(`Sucesso! JSON retornado em tempo recorde.`);
+      res.json(jsonData);
+    } else {
+      res.status(404).json({ error: "Trecho não encontrado no banco de dados." });
     }
-
-    await reader.close();
-    fs.unlinkSync(localFilePath);
-    console.log(`Sucesso! 120.000 pontos reduzidos para ${chartData.length} pontos.`);
-    res.json(chartData);
 
   } catch (error) {
-    console.error("Erro ao processar o Parquet:", error);
-
-    if (fs.existsSync(localFilePath)) {
-      fs.unlinkSync(localFilePath);
-    }
-
-    res.status(500).json({ error: "Falha ao processar os dados de telemetria." });
+    console.error("Erro ao buscar no PostgreSQL:", error);
+    res.status(500).json({ error: "Falha interna no servidor." });
   }
 });
 
