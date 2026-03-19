@@ -10,7 +10,7 @@ app.use(express.static('public'));
 const dbClient = new DynamoDBClient({ region: process.env.AWS_DEFAULT_REGION || 'sa-east-1' });
 const dynamo = DynamoDBDocumentClient.from(dbClient);
 
-const pool = new Pool({
+const db = new Pool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
@@ -43,7 +43,7 @@ app.get('/api/map-data/:batch_id', async (req, res) => {
             WHERE batch_id = $1 
             ORDER BY start_timestamp ASC
         `;
-    const { rows } = await pool.query(query, [batch_id]);
+    const { rows } = await db.query(query, [batch_id]);
 
     let rotaCompleta = [];
     rows.forEach(row => {
