@@ -96,35 +96,32 @@ app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
     let record = null;
 
     const chartData = [];
-    let primeiraLinha = true;
 
     while (record = await cursor.next()) {
 
-      if (primeiraLinha) {
-        console.log("\n🔍 ESTRUTURA REAL DO PARQUET NO NODE.JS:");
-        console.dir(record, { depth: null, colors: true });
-        primeiraLinha = false;
-      }
+      if (record.sensors && record.sensors.list && Array.isArray(record.sensors.list) && record.sensors.list.length > 0) {
+        const primeiroSensor = record.sensors.list[0].element;
+        const timestamp = parseInt(primeiroSensor.timestamp) || record.device_ts;
+        if (primeiroSensor.value && primeiroSensor.value.list && Array.isArray(primeiroSensor.value.list)) {
 
-      if (record.sensors && Array.isArray(record.sensors) && record.sensors.length > 0) {
-        const primeiroSensor = record.sensors[0];
-        const leiturasBrutas = primeiroSensor.value;
-        const timestamp = primeiroSensor.timestamp;
-        if (leiturasBrutas && Array.isArray(leiturasBrutas) && leiturasBrutas.length > 0) {
-          const picoMaximo = Math.max(...leiturasBrutas);
-          const picoMinimo = Math.min(...leiturasBrutas);
-          const soma = leiturasBrutas.reduce((a, b) => a + b, 0);
-          const media = soma / leiturasBrutas.length;
+          const leiturasBrutas = primeiroSensor.value.list.map(item => parseFloat(item.element));
+          if (leiturasBrutas.length > 0) {
+            const picoMaximo = Math.max(...leiturasBrutas);
+            const picoMinimo = Math.min(...leiturasBrutas);
+            const soma = leiturasBrutas.reduce((a, b) => a + b, 0);
+            const media = soma / leiturasBrutas.length;
 
-          chartData.push({
-            t: timestamp,
-            max_strain: picoMaximo,
-            min_strain: picoMinimo,
-            avg_strain: parseFloat(media.toFixed(2))
-          });
+            chartData.push({
+              t: timestamp,
+              max_strain: parseFloat(picoMaximo.toFixed(2)),
+              min_strain: parseFloat(picoMinimo.toFixed(2)),
+              avg_strain: parseFloat(media.toFixed(2))
+            });
+          }
         }
       }
     }
+
     await reader.close();
     fs.unlinkSync(localFilePath);
     console.log(`Sucesso! 120.000 pontos reduzidos para ${chartData.length} pontos.`);
