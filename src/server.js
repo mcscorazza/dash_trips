@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const parquet = require('parquetjs-lite');
+const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 const AWS = require('aws-sdk');
 const { Pool } = require('pg');
 const fs = require('fs');
@@ -9,9 +10,10 @@ const path = require('path');
 const app = express();
 app.use(express.static('public'));
 
-const dynamo = new AWS.DynamoDB.DocumentClient({ region: 'sa-east-1' });
-const s3 = new AWS.S3({ region: process.env.AWS_DEFAULT_REGION || 'sa-east-1' });
+const s3 = new S3Client({ region: process.env.AWS_DEFAULT_REGION || 'sa-east-1' });
 const BUCKET_NAME = process.env.BUCKET_NAME || 'trips-raw-data';
+
+const dynamo = new AWS.DynamoDB.DocumentClient({ region: 'sa-east-1' });
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -76,10 +78,17 @@ app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
 
   try {
     console.log(`Baixando Parquet do S3: ${s3Key}...`);
-    const s3File = await s3.getObject({ Bucket: BUCKET_NAME, Key: s3Key }).promise();
-    fs.writeFileSync(localFilePath, s3File.Body);
+    const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: s3Key });
+    const response = await s3.send(command);
 
-    // 2. Abre o arquivo Parquet
+    const fileStream = fs.createWriteStream(localFilePath);
+    response.Body.pipe(fileStream);
+
+    await new Promise((resolve, reject) => {
+      fileStream.on("finish", resolve);
+      fileStream.on("error", reject);
+    });
+
     let reader = await parquet.ParquetReader.openFile(localFilePath);
     let cursor = reader.getCursor();
     let record = null;
