@@ -123,7 +123,11 @@ app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
             });
           }
           else {
-            console.log(`⚠️ Tempo ${timestamp}: Valores do Strain Gauge corrompidos ou vazios.`);
+            if (timestamp === 1698201234 || timestamp === 1698200991) {
+              console.log(`\n🕵️ SUPER DETETIVE - TEMPO ${timestamp}:`);
+              console.log("O que o Node.js está a ler na lista de valores?");
+              console.dir(elementoReal.value.list.slice(0, 3), { depth: null, colors: true });
+            }
           }
         }
         else {
