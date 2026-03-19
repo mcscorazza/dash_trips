@@ -98,13 +98,17 @@ app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
     const chartData = [];
 
     while (record = await cursor.next()) {
+      if (record.sensors && record.sensors.list && Array.isArray(record.sensors.list)) {
+        const sensorAlvo = record.sensors.list.find(s => s.element && s.element.id === 'Eng(kgf)');
 
-      if (record.sensors && record.sensors.list && Array.isArray(record.sensors.list) && record.sensors.list.length > 0) {
-        const primeiroSensor = record.sensors.list[0].element;
-        const timestamp = parseInt(primeiroSensor.timestamp) || record.device_ts;
-        if (primeiroSensor.value && primeiroSensor.value.list && Array.isArray(primeiroSensor.value.list)) {
+        if (sensorAlvo && sensorAlvo.element && sensorAlvo.element.value && sensorAlvo.element.value.list) {
+          const elementoReal = sensorAlvo.element;
+          const timestamp = parseInt(elementoReal.timestamp) || record.device_ts;
 
-          const leiturasBrutas = primeiroSensor.value.list.map(item => parseFloat(item.element));
+          const leiturasBrutas = elementoReal.value.list
+            .map(item => parseFloat(item.element))
+            .filter(num => !isNaN(num));
+
           if (leiturasBrutas.length > 0) {
             const picoMaximo = Math.max(...leiturasBrutas);
             const picoMinimo = Math.min(...leiturasBrutas);
@@ -113,9 +117,9 @@ app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
 
             chartData.push({
               t: timestamp,
-              max_strain: parseFloat(picoMaximo.toFixed(2)),
-              min_strain: parseFloat(picoMinimo.toFixed(2)),
-              avg_strain: parseFloat(media.toFixed(2))
+              max_strain: isNaN(picoMaximo) ? 0 : parseFloat(picoMaximo.toFixed(2)),
+              min_strain: isNaN(picoMinimo) ? 0 : parseFloat(picoMinimo.toFixed(2)),
+              avg_strain: isNaN(media) ? 0 : parseFloat(media.toFixed(2))
             });
           }
         }
