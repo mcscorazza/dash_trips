@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const parquet = require('parquetjs-lite');
 const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, ScanCommand } = require("@aws-sdk/lib-dynamodb");
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
@@ -12,7 +14,8 @@ app.use(express.static('public'));
 const s3 = new S3Client({ region: process.env.AWS_DEFAULT_REGION || 'sa-east-1' });
 const BUCKET_NAME = process.env.BUCKET_NAME || 'trips-raw-data';
 
-const dynamo = new AWS.DynamoDB.DocumentClient({ region: 'sa-east-1' });
+const dbClient = new DynamoDBClient({ region: process.env.AWS_DEFAULT_REGION || 'sa-east-1' });
+const dynamo = DynamoDBDocumentClient.from(dbClient);
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -27,7 +30,7 @@ const pool = new Pool({
 
 app.get('/api/trips', async (req, res) => {
   try {
-    const result = await dynamo.scan({ TableName: 'trip_state_tracker' }).promise();
+    const result = await dynamo.send(new ScanCommand({ TableName: 'trip_state_tracker' }));
 
     const trips = result.Items.sort((a, b) => (b.started_at || 0) - (a.started_at || 0));
 
