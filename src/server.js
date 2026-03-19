@@ -122,6 +122,12 @@ app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
               avg_strain: isNaN(media) ? 0 : parseFloat(media.toFixed(2))
             });
           }
+          else {
+            console.log(`⚠️ Tempo ${timestamp}: Valores do Strain Gauge corrompidos ou vazios.`);
+          }
+        }
+        else {
+          console.log(`📡 Tempo ${record.ts}: Pacote recebido sem o sensor de Strain Gauge.`);
         }
       }
     }
