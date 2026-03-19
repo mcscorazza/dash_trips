@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const parquet = require('parquetjs-lite');
 const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
-const AWS = require('aws-sdk');
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
