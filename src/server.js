@@ -34,7 +34,7 @@ app.get('/api/trips', async (req, res) => {
 });
 
 // ==========================================
-// ROTA DO MAPA: Traz as coordenadas e a criticidade
+// Traz as coordenadas e a criticidade
 // ==========================================
 app.get('/api/map/:batch_id', async (req, res) => {
   const { batch_id } = req.params;
@@ -56,6 +56,49 @@ app.get('/api/map/:batch_id', async (req, res) => {
     }
   } catch (error) {
     console.error("Erro ao buscar coordenadas no RDS:", error);
+    res.status(500).json({ error: "Falha interna no servidor." });
+  }
+});
+
+// ==========================================
+// Viagem Completa (Todas as horas)
+// ==========================================
+app.get('/api/chart/full/:batch_id', async (req, res) => {
+  const { batch_id } = req.params;
+
+  try {
+    console.log(`Buscando a viagem COMPLETA no RDS para: ${batch_id}`);
+    const queryChart = `
+            SELECT chart_data 
+            FROM trip_geolocations 
+            WHERE batch_id = $1 
+            ORDER BY start_timestamp ASC
+        `;
+    const queryAvg = `
+            SELECT SUM(chunk_sum) / NULLIF(SUM(chunk_count), 0) AS global_avg
+            FROM trip_geolocations
+            WHERE batch_id = $1
+        `;
+
+    const [resultChart, resultAvg] = await Promise.all([
+      db.query(queryChart, [batch_id]),
+      db.query(queryAvg, [batch_id])
+    ]);
+
+    if (resultChart.rows.length > 0) {
+      const fullPointsArray = resultChart.rows.flatMap(row => row.chart_data);
+      const globalAvg = parseFloat(resultAvg.rows[0].global_avg || 0);
+      console.log(`Sucesso! ${fullPointsArray.length} pontos consolidados enviados.`);
+      res.json({
+        points: fullPointsArray,
+        global_average: globalAvg
+      });
+    } else {
+      res.status(404).json({ error: "Nenhum dado encontrado para esta viagem." });
+    }
+
+  } catch (error) {
+    console.error("Erro ao processar viagem completa no Node.js:", error);
     res.status(500).json({ error: "Falha interna no servidor." });
   }
 });
