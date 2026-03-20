@@ -259,110 +259,116 @@
       }
 
       // ==========================================
-      // 3. LÓGICA DO GRÁFICO (BLINDADA CONTRA ERROS)
+      // 4. LÓGICA DO GRÁFICO (O CARREGAMENTO PREGUIÇOSO)
       // ==========================================
       function abrirGrafico(batchId, parquetRef) {
+        // Cancela buscas anteriores se houver cliques rápidos
         if (currentFetch) currentFetch.abort();
-        clearTimeout(animationTimer);
-
         currentFetch = new AbortController();
 
+        // 1. Abre a tela
         workspace.classList.add("split-view");
 
-        animationTimer = setTimeout(() => {
-          map.invalidateSize();
+        // 2. Garante que o ECharts antigo seja completamente destruído
+        if (myChart) {
+          echarts.dispose(chartDom);
+          myChart = null;
+        }
 
-          if (!myChart) {
-            myChart = echarts.init(chartDom);
-          }
+        // 3. Coloca um aviso de carregamento em HTML PURO (Sem usar o ECharts para isso)
+        chartDom.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #e74c3c; font-weight: bold; font-size: 16px;">
+                    ⏳ Rastreando dados do trecho ${parquetRef} na EC2...
+                </div>
+            `;
 
-          myChart.clear();
-          myChart.resize();
-          myChart.showLoading({
-            text: "Carregando dados matemáticos...",
-            color: "#e74c3c",
-          });
-
-          fetch(
-            `https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`,
-            {
-              signal: currentFetch.signal,
-            },
+        // 4. Inicia a busca dos dados
+        fetch(
+          `https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`,
+          {
+            signal: currentFetch.signal,
+          },
+        )
+          .then((res) =>
+            res.ok ? res.json() : Promise.reject("Gráfico indisponível."),
           )
-            .then((res) =>
-              res.ok ? res.json() : Promise.reject("Gráfico indisponível."),
-            )
-            .then((data) => {
-              if (!myChart) return;
+          .then((data) => {
+            // Remove o texto de carregamento do HTML
+            chartDom.innerHTML = "";
 
-              myChart.hideLoading();
+            // O SEGREDO: Só inicializa o ECharts AGORA, com a div já grande e os dados na mão
+            myChart = echarts.init(chartDom);
 
-              const eixoX = data.map((i) =>
-                new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
-              );
-              const eixoY_Max = data.map((i) => i.max);
-              const eixoY_Min = data.map((i) => i.min);
-              const eixoY_Avg = data.map((i) => i.avg);
+            const eixoX = data.map((i) =>
+              new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
+            );
+            const eixoY_Max = data.map((i) => i.max);
+            const eixoY_Min = data.map((i) => i.min);
+            const eixoY_Avg = data.map((i) => i.avg);
 
-              const option = {
-                title: {
-                  text: `Análise do Trecho: ${parquetRef}`,
-                  textStyle: { fontSize: 14 },
+            const option = {
+              title: {
+                text: `Análise do Trecho: ${parquetRef}`,
+                textStyle: { fontSize: 14 },
+              },
+              tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
+              grid: {
+                left: "3%",
+                right: "4%",
+                bottom: "10%",
+                top: "15%",
+                containLabel: true,
+              },
+              dataZoom: [{ type: "inside" }, { type: "slider", bottom: 0 }],
+              xAxis: { type: "category", boundaryGap: false, data: eixoX },
+              yAxis: { type: "value", scale: true },
+              series: [
+                {
+                  name: "Máxima",
+                  type: "line",
+                  data: eixoY_Max,
+                  color: "#e74c3c",
+                  showSymbol: false,
                 },
-                tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
-                grid: {
-                  left: "3%",
-                  right: "4%",
-                  bottom: "10%",
-                  top: "15%",
-                  containLabel: true,
+                {
+                  name: "Média",
+                  type: "line",
+                  data: eixoY_Avg,
+                  color: "#f1c40f",
+                  type: "dashed",
+                  showSymbol: false,
                 },
-                dataZoom: [{ type: "inside" }, { type: "slider", bottom: 0 }],
-                xAxis: { type: "category", boundaryGap: false, data: eixoX },
-                yAxis: { type: "value", scale: true },
-                series: [
-                  {
-                    name: "Máxima",
-                    type: "line",
-                    data: eixoY_Max,
-                    color: "#e74c3c",
-                    showSymbol: false,
-                  },
-                  {
-                    name: "Média",
-                    type: "line",
-                    data: eixoY_Avg,
-                    color: "#f1c40f",
-                    type: "dashed",
-                    showSymbol: false,
-                  },
-                  {
-                    name: "Mínima",
-                    type: "line",
-                    data: eixoY_Min,
-                    color: "#3498db",
-                    showSymbol: false,
-                  },
-                ],
-              };
+                {
+                  name: "Mínima",
+                  type: "line",
+                  data: eixoY_Min,
+                  color: "#3498db",
+                  showSymbol: false,
+                },
+              ],
+            };
 
-              myChart.setOption(option, true);
-            })
-            .catch((err) => {
-              if (err.name === "AbortError") return;
-              if (myChart) myChart.hideLoading();
-              alert(err);
-            });
-        }, 350);
+            // Pinta o gráfico na tela de uma vez só
+            myChart.setOption(option);
+          })
+          .catch((err) => {
+            if (err.name === "AbortError") return;
+            chartDom.innerHTML = `<div style="color: red; padding: 20px;">Erro: ${err}</div>`;
+          });
       }
 
       function fecharGrafico() {
         if (currentFetch) currentFetch.abort();
-        clearTimeout(animationTimer);
 
         workspace.classList.remove("split-view");
 
-        if (myChart) myChart.clear();
+        // Destrói o ECharts instantaneamente para limpar a memória
+        if (myChart) {
+          echarts.dispose(chartDom);
+          myChart = null;
+        }
+
+        chartDom.innerHTML = ""; // Limpa qualquer HTML que tenha sobrado
 
         setTimeout(() => {
           map.invalidateSize();
