@@ -272,7 +272,7 @@
         setTimeout(() => {
           map.invalidateSize();
           myChart.resize();
-        }, 1000);
+        }, 300);
 
         fetch(`https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`)
           .then((res) =>
@@ -284,9 +284,9 @@
             const eixoX = data.map((i) =>
               new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
             );
-            const eixoY_Max = data.map((i) => i.max_strain);
-            const eixoY_Min = data.map((i) => i.min_strain);
-            const eixoY_Avg = data.map((i) => i.avg_strain);
+            const eixoY_Max = data.map((i) => i.max);
+            const eixoY_Min = data.map((i) => i.min);
+            const eixoY_Avg = data.map((i) => i.avg);
 
             const option = {
               title: {
