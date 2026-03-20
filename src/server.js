@@ -33,32 +33,30 @@ app.get('/api/trips', async (req, res) => {
   }
 });
 
-app.get('/api/map-data/:batch_id', async (req, res) => {
-  try {
-    const { batch_id } = req.params;
+// ==========================================
+// ROTA DO MAPA: Traz as coordenadas e a criticidade
+// ==========================================
+app.get('/api/map/:batch_id', async (req, res) => {
+  const { batch_id } = req.params;
 
+  try {
     const query = `
-            SELECT geo_points 
+            SELECT geo_points, is_critical 
             FROM trip_geolocations 
             WHERE batch_id = $1 
             ORDER BY start_timestamp ASC
         `;
-    const { rows } = await db.query(query, [batch_id]);
 
-    let rotaCompleta = [];
-    rows.forEach(row => {
-      const pontosTrecho = row.geo_points.map(p => ({
-        lat: p.lat,
-        lng: p.lng,
-        t: p.t
-      }));
-      rotaCompleta = rotaCompleta.concat(pontosTrecho);
-    });
+    const result = await db.query(query, [batch_id]);
 
-    res.json(rotaCompleta);
+    if (result.rows.length > 0) {
+      res.json(result.rows);
+    } else {
+      res.status(404).json({ error: "Nenhuma coordenada encontrada para esta viagem." });
+    }
   } catch (error) {
-    res.status(500).json({ error: error.message });
-    console.error(error);
+    console.error("Erro ao buscar coordenadas no RDS:", error);
+    res.status(500).json({ error: "Falha interna no servidor." });
   }
 });
 

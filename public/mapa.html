@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard iMov - Mapa de Criticidade</title>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #e9ecef;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+      }
+      .card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        padding: 24px;
+        width: 100%;
+        max-width: 1200px;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        margin-bottom: 20px;
+        align-items: flex-end;
+      }
+      .input-group {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+      }
+      .input-group label {
+        font-size: 12px;
+        font-weight: bold;
+        color: #6c757d;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+      }
+      input {
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      button {
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #c0392b;
+      }
+
+      #map {
+        width: 100%;
+        height: 600px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        z-index: 1;
+      }
+
+      /* Legenda flutuante no mapa */
+      .legenda {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        font-size: 14px;
+        line-height: 24px;
+      }
+      .linha-cor {
+        display: inline-block;
+        width: 30px;
+        height: 4px;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Trajeto da Viagem e Alertas Estruturais</h2>
+
+      <div class="controls">
+        <div class="input-group">
+          <label>Batch ID (Viagem)</label>
+          <input
+            type="text"
+            id="batchId"
+            value="6669fc9e-95dc-4a0a-b885-81eeb49e8629"
+          />
+        </div>
+        <button id="btnBuscar">Mapear Viagem</button>
+      </div>
+
+      <div id="map"></div>
+    </div>
+
+    <script>
+      const map = L.map("map").setView([-14.235, -51.925], 4);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors",
+      }).addTo(map);
+
+      const legend = L.control({ position: "bottomright" });
+      legend.onAdd = function () {
+        const div = L.DomUtil.create("div", "legenda");
+        div.innerHTML = `
+                <strong>Legenda de Tensão</strong><br>
+                <span class="linha-cor" style="background: #3498db; height: 3px;"></span> Trecho Normal<br>
+                <span class="linha-cor" style="background: #e74c3c; height: 6px;"></span> <b>Trecho Crítico (> 1.8x Média)</b>
+            `;
+        return div;
+      };
+      legend.addTo(map);
+
+      let polylines_desenhadas = L.layerGroup().addTo(map);
+
+      function carregarMapa() {
+        const batchId = document.getElementById("batchId").value.trim();
+        if (!batchId) return alert("Preencha o Batch ID.");
+
+        const API_URL = `https://trips.svxdigital.com/api/map/${batchId}`;
+
+        fetch(API_URL)
+          .then((res) => {
+            if (!res.ok) throw new Error("Viagem não encontrada no banco.");
+            return res.json();
+          })
+          .then((trechos) => {
+            polylines_desenhadas.clearLayers();
+
+            let bounds = L.latLngBounds();
+
+            trechos.forEach((trecho, index) => {
+              const coordenadasLeaflet = trecho.geo_points.map((ponto) => [
+                ponto.lat,
+                ponto.lng,
+              ]);
+
+              const cor = trecho.is_critical ? "#e74c3c" : "#3498db";
+              const espessura = trecho.is_critical ? 7 : 3;
+
+              const linha = L.polyline(coordenadasLeaflet, {
+                color: cor,
+                weight: espessura,
+                opacity: 0.9,
+                lineCap: "round",
+                lineJoin: "round",
+              });
+
+              if (trecho.is_critical) {
+                linha.bindTooltip("⚠️ Trecho Crítico Detectado", {
+                  sticky: true,
+                });
+              }
+
+              polylines_desenhadas.addLayer(linha);
+
+              bounds.extend(linha.getBounds());
+            });
+
+            if (trechos.length > 0) {
+              map.fitBounds(bounds, { padding: [50, 50] });
+            }
+          })
+          .catch((err) => {
+            console.error(err);
+            alert(err.message);
+          });
+      }
+
+      document
+        .getElementById("btnBuscar")
+        .addEventListener("click", carregarMapa);
+      document.getElementById("batchId").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") carregarMapa();
+      });
+    </script>
+  </body>
+</html>
