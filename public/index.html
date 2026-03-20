@@ -117,6 +117,8 @@
         cursor: pointer;
         z-index: 10;
         display: none;
+        align-items: center;
+        justify-content: center;
       }
 
       #workspace.split-view .map-wrapper {
@@ -130,7 +132,7 @@
         padding: 15px;
       }
       #workspace.split-view .btn-fechar-grafico {
-        display: block;
+        display: flex;
       }
 
       .legenda {
@@ -300,9 +302,9 @@
             const eixoX = data.map((i) =>
               new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
             );
-            const eixoY_Max = data.map((i) => i.max_strain);
-            const eixoY_Min = data.map((i) => i.min_strain);
-            const eixoY_Avg = data.map((i) => i.avg_strain);
+            const eixoY_Max = data.map((i) => i.max);
+            const eixoY_Min = data.map((i) => i.min);
+            const eixoY_Avg = data.map((i) => i.avg);
 
             const option = {
               title: {
