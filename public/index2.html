@@ -340,6 +340,16 @@
       );
       let polylines_desenhadas = L.layerGroup().addTo(map);
 
+      let todasCoordenadasViagem = [];
+      let cursorMarker = L.circleMarker([0, 0], {
+        radius: 6,
+        color: "white",
+        weight: 2,
+        fillColor: "#e74c3c",
+        fillOpacity: 1,
+        zIndexOffset: 1000,
+      });
+
       const workspace = document.getElementById("workspace");
       const bottomChartDom = document.getElementById("bottom-chart-container");
       const modalChartDom = document.getElementById("modal-chart-container");
@@ -383,8 +393,16 @@
           .then((trechos) => {
             polylines_desenhadas.clearLayers();
             let bounds = L.latLngBounds();
+
+            todasCoordenadasViagem = [];
+
             trechos.forEach((trecho) => {
               const coords = trecho.geo_points.map((p) => [p.lat, p.lng]);
+
+              if (trecho.geo_points) {
+                todasCoordenadasViagem.push(...trecho.geo_points);
+              }
+
               const isCritical = trecho.is_critical;
               const linha = L.polyline(coords, {
                 color: isCritical ? "#e74c3c" : "#3498db",
@@ -404,6 +422,9 @@
               polylines_desenhadas.addLayer(linha);
               bounds.extend(linha.getBounds());
             });
+
+            todasCoordenadasViagem.sort((a, b) => a.t - b.t);
+
             if (trechos.length > 0)
               map.fitBounds(bounds, { padding: [30, 30] });
           })
@@ -443,6 +464,26 @@
               dataResponse,
               `Análise Detalhada do Trecho: ${parquetRef}`,
             );
+            bottomChart.on("updateAxisPointer", function (event) {
+              const xAxisInfo = event.axesInfo[0];
+              if (xAxisInfo) {
+                const index = xAxisInfo.value;
+                const pontoMatematico = dataResponse.points[index];
+
+                if (pontoMatematico && pontoMatematico.t) {
+                  const coordGPS = buscarCoordenadaPorTempo(pontoMatematico.t);
+
+                  if (coordGPS && coordGPS.lat && coordGPS.lng) {
+                    cursorMarker.setLatLng([coordGPS.lat, coordGPS.lng]);
+                    if (!map.hasLayer(cursorMarker)) cursorMarker.addTo(map);
+                  }
+                }
+              }
+            });
+
+            bottomChart.on("globalout", function () {
+              if (map.hasLayer(cursorMarker)) map.removeLayer(cursorMarker);
+            });
           })
           .catch((err) => {
             if (err.name !== "AbortError")
@@ -664,6 +705,35 @@
         if (modalChart && modalOverlay.classList.contains("active"))
           modalChart.resize();
       });
+
+      function buscarCoordenadaPorTempo(tempoAlvo) {
+        if (todasCoordenadasViagem.length === 0) return null;
+
+        let inicio = 0;
+        let fim = todasCoordenadasViagem.length - 1;
+        let melhorOpcao = todasCoordenadasViagem[0];
+
+        while (inicio <= fim) {
+          let meio = Math.floor((inicio + fim) / 2);
+          let pontoMeio = todasCoordenadasViagem[meio];
+
+          if (
+            Math.abs(pontoMeio.t - tempoAlvo) <
+            Math.abs(melhorOpcao.t - tempoAlvo)
+          ) {
+            melhorOpcao = pontoMeio;
+          }
+
+          if (pontoMeio.t < tempoAlvo) {
+            inicio = meio + 1;
+          } else if (pontoMeio.t > tempoAlvo) {
+            fim = meio - 1;
+          } else {
+            return pontoMeio;
+          }
+        }
+        return melhorOpcao;
+      }
     </script>
   </body>
 </html>
