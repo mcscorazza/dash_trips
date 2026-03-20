@@ -34,29 +34,45 @@ app.get('/api/trips', async (req, res) => {
 });
 
 // ==========================================
-// ROTA DO MAPA: Traz as coordenadas e a criticidade
+// ROTA DO GRÁFICO: Atualizada com a Média Global
 // ==========================================
-app.get('/api/map/:batch_id', async (req, res) => {
-  const { batch_id } = req.params;
+app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
+  const { batch_id, parquet_ref } = req.params;
 
   try {
-    const query = `
-            SELECT geo_points, is_critical, parquet_ref 
+    console.log(`Buscando dados avançados no RDS para: ${parquet_ref}`);
+    const queryChart = `
+            SELECT chart_data 
             FROM trip_geolocations 
-            WHERE batch_id = $1 
-            ORDER BY start_timestamp ASC
+            WHERE batch_id = $1 AND parquet_ref = $2
         `;
 
-    const result = await db.query(query, [batch_id]);
+    const queryAvg = `
+            SELECT SUM(chunk_sum) / NULLIF(SUM(chunk_count), 0) AS global_avg
+            FROM trip_geolocations
+            WHERE batch_id = $1
+        `;
 
-    if (result.rows.length > 0) {
-      res.json(result.rows);
+    const [resultChart, resultAvg] = await Promise.all([
+      db.query(queryChart, [batch_id, parquet_ref]),
+      db.query(queryAvg, [batch_id])
+    ]);
+
+    if (resultChart.rows.length > 0) {
+      const chartData = resultChart.rows[0].chart_data;
+      const globalAvg = parseFloat(resultAvg.rows[0].global_avg || 0);
+
+      res.json({
+        points: chartData,
+        global_average: globalAvg
+      });
     } else {
-      res.status(404).json({ error: "Nenhuma coordenada encontrada para esta viagem." });
+      res.status(404).json({ error: "Trecho não encontrado." });
     }
+
   } catch (error) {
-    console.error("Erro ao buscar coordenadas no RDS:", error);
-    res.status(500).json({ error: "Falha interna no servidor." });
+    console.error("Erro no Node.js:", error);
+    res.status(500).json({ error: "Falha interna." });
   }
 });
 

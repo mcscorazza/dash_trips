@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Painel Central iMov</title>
+    <title>Painel iMov Telemetria</title>
 
     <link
       rel="stylesheet"
@@ -14,17 +14,15 @@
 
     <style>
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-family: "Segoe UI", sans-serif;
         background-color: #f0f2f5;
         margin: 0;
         padding: 15px;
         height: 100vh;
-        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         overflow: hidden;
       }
-
       .header-panel {
         background: white;
         padding: 15px 20px;
@@ -34,20 +32,16 @@
         gap: 15px;
         align-items: center;
         margin-bottom: 15px;
-        flex-shrink: 0;
       }
       .header-panel h2 {
         margin: 0;
         color: #2c3e50;
         font-size: 20px;
-        border-right: 2px solid #eee;
-        padding-right: 15px;
       }
       input {
-        padding: 8px 12px;
+        padding: 8px;
         border: 1px solid #ced4da;
         border-radius: 5px;
-        font-size: 14px;
         width: 300px;
       }
       button {
@@ -58,27 +52,22 @@
         border-radius: 5px;
         font-weight: bold;
         cursor: pointer;
-        transition: 0.2s;
       }
       button:hover {
         background-color: #1a252f;
       }
-
       #workspace {
         display: flex;
         flex-direction: column;
         gap: 15px;
         flex-grow: 1;
-        transition: all 0.3s ease-in-out;
+        transition: 0.3s;
       }
-
       .map-wrapper {
         background: white;
         border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         padding: 10px;
         flex-grow: 1;
-        transition: all 0.3s ease;
         position: relative;
       }
       #map {
@@ -87,23 +76,20 @@
         border-radius: 5px;
         z-index: 1;
       }
-
       .chart-wrapper {
         background: white;
         border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         padding: 10px;
         height: 0;
         opacity: 0;
         overflow: hidden;
-        transition: all 0.3s ease;
+        transition: 0.3s;
         position: relative;
       }
       #chart-container {
         height: 100%;
         width: 100%;
       }
-
       .btn-fechar-grafico {
         position: absolute;
         top: 15px;
@@ -116,25 +102,19 @@
         height: 30px;
         cursor: pointer;
         z-index: 10;
-        display: none;
+        display: flex;
         align-items: center;
         justify-content: center;
       }
-
       #workspace.split-view .map-wrapper {
-        flex-grow: 0;
         height: 50%;
       }
       #workspace.split-view .chart-wrapper {
-        flex-grow: 0;
         height: 50%;
         opacity: 1;
         padding: 15px;
+        padding-top: 40px;
       }
-      #workspace.split-view .btn-fechar-grafico {
-        display: flex;
-      }
-
       .legenda {
         background: white;
         padding: 10px;
@@ -160,33 +140,24 @@
         <div id="map"></div>
       </div>
       <div class="chart-wrapper">
-        <button
-          class="btn-fechar-grafico"
-          id="btnFechar"
-          title="Fechar Gráfico"
-        >
-          ✖
-        </button>
+        <button class="btn-fechar-grafico" id="btnFechar">✖</button>
         <div id="chart-container"></div>
       </div>
     </div>
 
     <script>
       // ==========================================
-      // 1. INICIALIZAÇÃO DE COMPONENTES
+      // 1. INICIALIZAÇÃO E MAPA
       // ==========================================
       const map = L.map("map").setView([-14.235, -51.925], 4);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
         map,
       );
-
       let polylines_desenhadas = L.layerGroup().addTo(map);
       const workspace = document.getElementById("workspace");
       const chartDom = document.getElementById("chart-container");
-
       let myChart = null;
       let currentFetch = null;
-      let animationTimer = null;
 
       // Legenda do Mapa
       const legend = L.control({ position: "bottomright" });
@@ -198,12 +169,9 @@
       };
       legend.addTo(map);
 
-      // ==========================================
-      // 2. LÓGICA DE URL E BUSCA DO MAPA
-      // ==========================================
+      // Lógica de URL
       const urlParams = new URLSearchParams(window.location.search);
       const idDaUrl = urlParams.get("id");
-
       if (idDaUrl) {
         document.getElementById("batchId").value = idDaUrl;
         carregarMapa(idDaUrl);
@@ -220,7 +188,6 @@
       function carregarMapa(batchId) {
         fecharGrafico();
         const API_URL = `https://trips.svxdigital.com/api/map/${batchId}`;
-
         fetch(API_URL)
           .then((res) =>
             res.ok ? res.json() : Promise.reject("Viagem não encontrada."),
@@ -228,32 +195,23 @@
           .then((trechos) => {
             polylines_desenhadas.clearLayers();
             let bounds = L.latLngBounds();
-
             trechos.forEach((trecho) => {
               const coords = trecho.geo_points.map((p) => [p.lat, p.lng]);
-              const isCritical = trecho.is_critical;
-
               const linha = L.polyline(coords, {
-                color: isCritical ? "#e74c3c" : "#3498db",
-                weight: isCritical ? 7 : 4,
+                color: trecho.is_critical ? "#e74c3c" : "#3498db",
+                weight: trecho.is_critical ? 7 : 4,
                 opacity: 0.9,
+                cursor: trecho.is_critical ? "pointer" : "default",
               });
-
-              if (isCritical) {
-                linha.bindTooltip(
-                  "⚠️ Trecho Crítico<br>Clique para ver o gráfico",
+              if (trecho.is_critical) {
+                linha.bindTooltip("⚠️ Trecho Crítico<br>Clique para analisar");
+                linha.on("click", () =>
+                  abrirGrafico(batchId, trecho.parquet_ref),
                 );
-                linha.setStyle({ cursor: "pointer" });
               }
-
-              linha.on("click", () => {
-                abrirGrafico(batchId, trecho.parquet_ref);
-              });
-
               polylines_desenhadas.addLayer(linha);
               bounds.extend(linha.getBounds());
             });
-
             if (trechos.length > 0)
               map.fitBounds(bounds, { padding: [50, 50] });
           })
@@ -261,67 +219,61 @@
       }
 
       // ==========================================
-      // 4. LÓGICA DO GRÁFICO (SINCRONIZADA)
+      // 4. LÓGICA DO GRÁFICO (COM AS LINHAS DE REFERÊNCIA)
       // ==========================================
       function abrirGrafico(batchId, parquetRef) {
         if (currentFetch) currentFetch.abort();
         currentFetch = new AbortController();
-
         workspace.classList.add("split-view");
 
-        if (myChart) {
-          echarts.dispose(chartDom);
-          myChart = null;
-        }
-
-        chartDom.innerHTML = `
-                <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #e74c3c; font-weight: bold; font-size: 16px;">
-                    ⏳ Rastreando dados matemáticos...
-                </div>
-            `;
+        // Texto de Carregamento
+        chartDom.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #e74c3c; font-weight: bold; font-size: 15px;">⏳ Buscando dados avançados na EC2 e calculando médias...</div>`;
 
         const tempoDaAnimacao = new Promise((resolve) =>
           setTimeout(resolve, 350),
         );
-
         const buscaDosDados = fetch(
           `https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`,
-          {
-            signal: currentFetch.signal,
-          },
+          { signal: currentFetch.signal },
         ).then((res) =>
           res.ok ? res.json() : Promise.reject("Gráfico indisponível."),
         );
 
         Promise.all([buscaDosDados, tempoDaAnimacao])
-          .then(([data]) => {
+          .then(([dataResponse]) => {
             chartDom.innerHTML = "";
-
+            if (myChart) echarts.dispose(chartDom);
             myChart = echarts.init(chartDom);
 
-            const eixoX = data.map((i) =>
+            const pointsData = dataResponse.points;
+            const globalAvg = Math.abs(dataResponse.global_average);
+
+            const eixoX = pointsData.map((i) =>
               new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
             );
-            const eixoY_Max = data.map((i) => i.max);
-            const eixoY_Min = data.map((i) => i.min);
-            const eixoY_Avg = data.map((i) => i.avg);
+            const eixoY_Max = pointsData.map((i) => i.max);
+            const eixoY_Min = pointsData.map((i) => i.min);
+            const eixoY_Avg = pointsData.map((i) => i.avg);
 
             const option = {
               title: {
-                text: `Análise do Trecho: ${parquetRef}`,
+                text: `Análise Estrutural: ${parquetRef}`,
                 textStyle: { fontSize: 14 },
+                subtext: `Média Global da Viagem: ${globalAvg.toFixed(2)} kgf`,
+                subtextStyle: { color: "#2c3e50", fontStyle: "italic" },
               },
               tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
               grid: {
                 left: "3%",
-                right: "4%",
+                right: "12%",
                 bottom: "10%",
-                top: "15%",
+                top: "22%",
                 containLabel: true,
               },
+              legend: { data: ["Máxima", "Média", "Mínima"], top: "12%" },
               dataZoom: [{ type: "inside" }, { type: "slider", bottom: 0 }],
               xAxis: { type: "category", boundaryGap: false, data: eixoX },
-              yAxis: { type: "value", scale: true },
+              yAxis: { type: "value", scale: true, name: "Eng(kgf)" },
               series: [
                 {
                   name: "Máxima",
@@ -344,12 +296,63 @@
                   data: eixoY_Min,
                   itemStyle: { color: "#3498db" },
                   showSymbol: false,
+
+                  markLine: {
+                    symbol: ["none", "none"],
+                    label: {
+                      position: "end",
+                      formatter: (params) => {
+                        const values = [
+                          { name: "Gatilho 1.8x", shortName: "1.8x" },
+                          { name: "Gatilho -1.8x", shortName: "-1.8x" },
+                          { name: "Alerta 1.5x", shortName: "1.5x" },
+                          { name: "Alerta -1.5x", shortName: "-1.5x" },
+                          { name: "Média Global", shortName: "AVG" },
+                        ];
+                        const found = values.find(
+                          (v) => v.name === params.name,
+                        );
+                        return found
+                          ? `${found.shortName}: ${params.value.toFixed(1)}`
+                          : "";
+                      },
+                    },
+                    lineStyle: { width: 1.5, opacity: 0.8 },
+                    data: [
+                      {
+                        yAxis: globalAvg * 1.8,
+                        name: "Gatilho 1.8x",
+                        lineStyle: { color: "#c0392b", type: "dotted" },
+                      },
+                      {
+                        yAxis: globalAvg * -1.8,
+                        name: "Gatilho -1.8x",
+                        lineStyle: { color: "#c0392b", type: "dotted" },
+                      },
+
+                      {
+                        yAxis: globalAvg * 1.5,
+                        name: "Alerta 1.5x",
+                        lineStyle: { color: "#e67e22", type: "dashed" },
+                      },
+                      {
+                        yAxis: globalAvg * -1.5,
+                        name: "Alerta -1.5x",
+                        lineStyle: { color: "#e67e22", type: "dashed" },
+                      },
+
+                      {
+                        yAxis: globalAvg,
+                        name: "Média Global",
+                        lineStyle: { color: "#2c3e50", type: "solid" },
+                      },
+                    ],
+                  },
                 },
               ],
             };
 
             myChart.setOption(option);
-
             myChart.resize();
           })
           .catch((err) => {
@@ -360,30 +363,16 @@
 
       function fecharGrafico() {
         if (currentFetch) currentFetch.abort();
-
         workspace.classList.remove("split-view");
-
-        if (myChart) {
-          echarts.dispose(chartDom);
-          myChart = null;
-        }
-
         chartDom.innerHTML = "";
-
-        setTimeout(() => {
-          map.invalidateSize();
-        }, 300);
       }
-
       document
         .getElementById("btnFechar")
         .addEventListener("click", fecharGrafico);
-
       window.addEventListener("resize", () => {
         map.invalidateSize();
-        if (myChart && workspace.classList.contains("split-view")) {
+        if (myChart && workspace.classList.contains("split-view"))
           myChart.resize();
-        }
       });
     </script>
   </body>
