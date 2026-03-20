@@ -272,7 +272,7 @@
         setTimeout(() => {
           map.invalidateSize();
           myChart.resize();
-        }, 300);
+        }, 1000);
 
         fetch(`https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`)
           .then((res) =>
