@@ -367,9 +367,9 @@
             const eixoX = pointsData.map((i) =>
               new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
             );
-            const eixoY_Max = pointsData.map((i) => i.max_strain);
-            const eixoY_Min = pointsData.map((i) => i.min_strain);
-            const eixoY_Avg = pointsData.map((i) => i.avg_strain);
+            const eixoY_Max = pointsData.map((i) => i.max);
+            const eixoY_Min = pointsData.map((i) => i.min);
+            const eixoY_Avg = pointsData.map((i) => i.avg);
 
             const option = {
               title: {
