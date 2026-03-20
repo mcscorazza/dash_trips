@@ -264,17 +264,15 @@
         workspace.classList.add("split-view");
 
         myChart.clear();
-        myChart.setOption({ series: [] });
+        myChart.showLoading({
+          text: "Carregando dados do RDS...",
+          color: "#e74c3c",
+        });
 
         setTimeout(() => {
           map.invalidateSize();
           myChart.resize();
         }, 300);
-
-        myChart.showLoading({
-          text: "Carregando dados da EC2...",
-          color: "#e74c3c",
-        });
 
         fetch(`https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`)
           .then((res) =>
@@ -282,6 +280,7 @@
           )
           .then((data) => {
             myChart.hideLoading();
+
             const eixoX = data.map((i) =>
               new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
             );
