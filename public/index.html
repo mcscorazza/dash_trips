@@ -283,8 +283,10 @@
         }, 300);
 
         fetch(`https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`)
-          .then((res) =>
-            res.ok ? res.json() : Promise.reject("Gráfico indisponível."),
+          .then(
+            (res) =>
+              res.ok ? res.json() : Promise.reject("Gráfico indisponível."),
+            console.log(res.json()),
           )
           .then((data) => {
             myChart.hideLoading();
