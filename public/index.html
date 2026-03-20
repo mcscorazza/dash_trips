@@ -263,7 +263,15 @@
       function abrirGrafico(batchId, parquetRef) {
         workspace.classList.add("split-view");
 
-        myChart.clear();
+        myChart.setOption(
+          {
+            xAxis: { type: "category", data: [] },
+            yAxis: { type: "value" },
+            series: [{ type: "line", data: [] }],
+          },
+          true,
+        );
+
         myChart.showLoading({
           text: "Carregando dados do RDS...",
           color: "#e74c3c",
@@ -330,14 +338,13 @@
               ],
             };
 
-            myChart.setOption(option, true);
+            myChart.setOption(option);
           })
           .catch((err) => {
             myChart.hideLoading();
             alert(err);
           });
       }
-
       function fecharGrafico() {
         workspace.classList.remove("split-view");
         setTimeout(() => map.invalidateSize(), 300);
