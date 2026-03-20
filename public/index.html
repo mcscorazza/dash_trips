@@ -183,7 +183,6 @@
       const myChart = echarts.init(chartDom);
       const workspace = document.getElementById("workspace");
 
-      // Legenda do Mapa
       const legend = L.control({ position: "bottomright" });
       legend.onAdd = () => {
         const div = L.DomUtil.create("div", "legenda");
@@ -196,7 +195,6 @@
       // ==========================================
       // 2. LÓGICA DE URL E BUSCA
       // ==========================================
-      // Lê o parâmetro ?id= da barra de endereços ao carregar a página
       const urlParams = new URLSearchParams(window.location.search);
       const idDaUrl = urlParams.get("id");
 
@@ -208,7 +206,6 @@
       document.getElementById("btnBuscar").addEventListener("click", () => {
         const batchId = document.getElementById("batchId").value.trim();
         if (batchId) {
-          // Atualiza a URL sem recarregar a página (fica lindo para compartilhar o link)
           window.history.pushState({}, "", `?id=${batchId}`);
           carregarMapa(batchId);
         }
@@ -266,12 +263,18 @@
       function abrirGrafico(batchId, parquetRef) {
         workspace.classList.add("split-view");
 
+        myChart.clear();
+        myChart.setOption({ series: [] });
+
         setTimeout(() => {
           map.invalidateSize();
           myChart.resize();
         }, 300);
 
-        myChart.showLoading();
+        myChart.showLoading({
+          text: "Carregando dados da EC2...",
+          color: "#e74c3c",
+        });
 
         fetch(`https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`)
           .then((res) =>
@@ -286,7 +289,7 @@
             const eixoY_Min = data.map((i) => i.min_strain);
             const eixoY_Avg = data.map((i) => i.avg_strain);
 
-            myChart.setOption({
+            const option = {
               title: {
                 text: `Análise do Trecho: ${parquetRef}`,
                 textStyle: { fontSize: 14 },
@@ -326,7 +329,9 @@
                   showSymbol: false,
                 },
               ],
-            });
+            };
+
+            myChart.setOption(option, true);
           })
           .catch((err) => {
             myChart.hideLoading();
