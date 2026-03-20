@@ -261,25 +261,29 @@
       // 4. LÓGICA DO GRÁFICO (SPLIT VIEW)
       // ==========================================
       function abrirGrafico(batchId, parquetRef) {
-        workspace.classList.add("split-view");
-
-        myChart.setOption(
-          {
-            xAxis: { type: "category", data: [] },
-            yAxis: { type: "value" },
-            series: [{ type: "line", data: [] }],
-          },
-          true,
+        console.log("1. Clique registrado. Iniciando abertura do gráfico.");
+        console.log(
+          "2. Altura da div ANTES da classe CSS:",
+          document.getElementById("chart-container").clientHeight,
         );
 
-        myChart.showLoading({
-          text: "Carregando dados do RDS...",
-          color: "#e74c3c",
-        });
+        workspace.classList.add("split-view");
+
+        console.log(
+          "3. Altura da div APÓS aplicar a classe (durante animação):",
+          document.getElementById("chart-container").clientHeight,
+        );
 
         setTimeout(() => {
+          console.log(
+            "4. Cronômetro 300ms finalizado. Altura real agora:",
+            document.getElementById("chart-container").clientHeight,
+          );
           map.invalidateSize();
+
+          console.log("5. Disparando myChart.resize()...");
           myChart.resize();
+          console.log("6. Resize concluído com sucesso!");
         }, 300);
 
         fetch(`https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`)
