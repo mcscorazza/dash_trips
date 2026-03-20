@@ -171,7 +171,7 @@
 
     <script>
       // ==========================================
-      // 1. INICIALIZAÇÃO DE COMPONENTES
+      // 1. INICIALIZAÇÃO DE COMPONENTES BÁSICOS
       // ==========================================
       const map = L.map("map").setView([-14.235, -51.925], 4);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
@@ -179,22 +179,16 @@
       );
 
       let polylines_desenhadas = L.layerGroup().addTo(map);
-      const chartDom = document.getElementById("chart-container");
-      const myChart = echarts.init(chartDom);
       const workspace = document.getElementById("workspace");
+      const chartDom = document.getElementById("chart-container");
 
-      const legend = L.control({ position: "bottomright" });
-      legend.onAdd = () => {
-        const div = L.DomUtil.create("div", "legenda");
-        div.innerHTML = `<span style="background: #3498db; width: 20px; height: 3px; display: inline-block;"></span> Normal<br>
-                             <span style="background: #e74c3c; width: 20px; height: 5px; display: inline-block;"></span> Crítico (Clique para Analisar)`;
-        return div;
-      };
-      legend.addTo(map);
+      // Declaramos o myChart, mas NÃO inicializamos ainda (A Mágica começa aqui)
+      let myChart = null;
 
       // ==========================================
       // 2. LÓGICA DE URL E BUSCA
       // ==========================================
+      // Lê o parâmetro ?id= da barra de endereços ao carregar a página
       const urlParams = new URLSearchParams(window.location.search);
       const idDaUrl = urlParams.get("id");
 
@@ -206,6 +200,7 @@
       document.getElementById("btnBuscar").addEventListener("click", () => {
         const batchId = document.getElementById("batchId").value.trim();
         if (batchId) {
+          // Atualiza a URL sem recarregar a página (fica lindo para compartilhar o link)
           window.history.pushState({}, "", `?id=${batchId}`);
           carregarMapa(batchId);
         }
@@ -215,7 +210,7 @@
       // 3. CARREGAR O MAPA E EVENTOS DE CLIQUE
       // ==========================================
       function carregarMapa(batchId) {
-        fecharGrafico();
+        fecharGrafico(); // Se houver um gráfico aberto, fecha para ver a nova viagem
         const API_URL = `https://trips.svxdigital.com/api/map/${batchId}`;
 
         fetch(API_URL)
@@ -236,6 +231,7 @@
                 opacity: 0.9,
               });
 
+              // Se for crítico, avisa no mouse hover e muda o cursor para uma "mãozinha"
               if (isCritical) {
                 linha.bindTooltip(
                   "⚠️ Trecho Crítico<br>Clique para ver o gráfico",
@@ -243,6 +239,7 @@
                 linha.setStyle({ cursor: "pointer" });
               }
 
+              // O EVENTO MÁGICO: Ao clicar na linha, chama o gráfico passando a referência
               linha.on("click", () => {
                 abrirGrafico(batchId, trecho.parquet_ref);
               });
@@ -258,109 +255,114 @@
       }
 
       // ==========================================
-      // 4. LÓGICA DO GRÁFICO (SPLIT VIEW)
+      // 4. LÓGICA DO GRÁFICO (OPÇÃO NUCLEAR)
       // ==========================================
       function abrirGrafico(batchId, parquetRef) {
-        console.log("1. Clique registrado. Iniciando abertura do gráfico.");
-        console.log(
-          "2. Altura da div ANTES da classe CSS:",
-          document.getElementById("chart-container").clientHeight,
-        );
-
+        // 1. Inicia a animação CSS para dividir a tela
         workspace.classList.add("split-view");
 
-        console.log(
-          "3. Altura da div APÓS aplicar a classe (durante animação):",
-          document.getElementById("chart-container").clientHeight,
-        );
-
+        // 2. Espera os 300ms do CSS terminarem DE VERDADE
         setTimeout(() => {
-          console.log(
-            "4. Cronômetro 300ms finalizado. Altura real agora:",
-            document.getElementById("chart-container").clientHeight,
-          );
           map.invalidateSize();
 
-          console.log("5. Disparando myChart.resize()...");
-          myChart.resize();
-          console.log("6. Resize concluído com sucesso!");
-        }, 300);
-
-        fetch(`https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`)
-          .then((res) =>
-            res.ok ? res.json() : Promise.reject("Gráfico indisponível."),
-          )
-          .then((data) => {
-            console.log(data);
-            myChart.hideLoading();
-
-            const eixoX = data.map((i) =>
-              new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
-            );
-            const eixoY_Max = data.map((i) => i.max);
-            const eixoY_Min = data.map((i) => i.min);
-            const eixoY_Avg = data.map((i) => i.avg);
-
-            const option = {
-              title: {
-                text: `Análise do Trecho: ${parquetRef}`,
-                textStyle: { fontSize: 14 },
-              },
-              tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
-              grid: {
-                left: "3%",
-                right: "4%",
-                bottom: "10%",
-                top: "15%",
-                containLabel: true,
-              },
-              dataZoom: [{ type: "inside" }, { type: "slider", bottom: 0 }],
-              xAxis: { type: "category", boundaryGap: false, data: eixoX },
-              yAxis: { type: "value", scale: true },
-              series: [
-                {
-                  name: "Máxima",
-                  type: "line",
-                  data: eixoY_Max,
-                  color: "#e74c3c",
-                  showSymbol: false,
-                },
-                {
-                  name: "Média",
-                  type: "line",
-                  data: eixoY_Avg,
-                  color: "#f1c40f",
-                  type: "dashed",
-                  showSymbol: false,
-                },
-                {
-                  name: "Mínima",
-                  type: "line",
-                  data: eixoY_Min,
-                  color: "#3498db",
-                  showSymbol: false,
-                },
-              ],
-            };
-
-            myChart.setOption(option);
-          })
-          .catch((err) => {
-            myChart.hideLoading();
-            alert(err);
+          // 3. Destrói o gráfico antigo (se existir) e cria um novo do zero na div já expandida
+          if (myChart != null) {
+            myChart.dispose();
+          }
+          myChart = echarts.init(chartDom);
+          myChart.showLoading({
+            text: "Desenhando dados da EC2...",
+            color: "#e74c3c",
           });
+
+          // 4. Só AGORA nós buscamos os dados. Fim da corrida (Race Condition)!
+          fetch(
+            `https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`,
+          )
+            .then((res) =>
+              res.ok ? res.json() : Promise.reject("Gráfico indisponível."),
+            )
+            .then((data) => {
+              myChart.hideLoading();
+
+              const eixoX = data.map((i) =>
+                new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
+              );
+              const eixoY_Max = data.map((i) => i.max);
+              const eixoY_Min = data.map((i) => i.min);
+              const eixoY_Avg = data.map((i) => i.avg);
+
+              const option = {
+                title: {
+                  text: `Análise do Trecho: ${parquetRef}`,
+                  textStyle: { fontSize: 14 },
+                },
+                tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
+                grid: {
+                  left: "3%",
+                  right: "4%",
+                  bottom: "10%",
+                  top: "15%",
+                  containLabel: true,
+                },
+                dataZoom: [{ type: "inside" }, { type: "slider", bottom: 0 }],
+                xAxis: { type: "category", boundaryGap: false, data: eixoX },
+                yAxis: { type: "value", scale: true },
+                series: [
+                  {
+                    name: "Máxima",
+                    type: "line",
+                    data: eixoY_Max,
+                    color: "#e74c3c",
+                    showSymbol: false,
+                  },
+                  {
+                    name: "Média",
+                    type: "line",
+                    data: eixoY_Avg,
+                    color: "#f1c40f",
+                    type: "dashed",
+                    showSymbol: false,
+                  },
+                  {
+                    name: "Mínima",
+                    type: "line",
+                    data: eixoY_Min,
+                    color: "#3498db",
+                    showSymbol: false,
+                  },
+                ],
+              };
+
+              myChart.setOption(option);
+            })
+            .catch((err) => {
+              myChart.hideLoading();
+              alert(err);
+            });
+        }, 300); // Os 300ms exatos da transição do CSS
       }
+
       function fecharGrafico() {
         workspace.classList.remove("split-view");
+        // Destrói a instância para liberar memória e evitar lixo no próximo clique
+        if (myChart != null) {
+          myChart.dispose();
+          myChart = null;
+        }
         setTimeout(() => map.invalidateSize(), 300);
       }
 
       document
         .getElementById("btnFechar")
         .addEventListener("click", fecharGrafico);
+
+      // Previne o erro ao redimensionar a janela caso o gráfico não esteja aberto
       window.addEventListener("resize", () => {
         map.invalidateSize();
-        myChart.resize();
+        if (myChart != null) {
+          myChart.resize();
+        }
       });
     </script>
   </body>
