@@ -2,59 +2,350 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <title>Dashboard de Telemetria</title>
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel Central iMov</title>
 
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <link rel="stylesheet" href="assets/styles.css">
-  </head>
-<body>
-    <div id="sidebar">
-      <h2>Viagens</h2>
-      <div id="trip-list">Carregando...</div>
-    </div>
-
-    <div id="main-content">
-      <button id="menu-toggle">☰ Viagens</button>
-      <div class="top-cards">
-        <div class="card">
-          <div class="card-title">Distância Total</div>
-          <div class="card-value" id="card-distance">-- <span class="card-unit">km</span></div>
-        </div>
-        <div class="card" style="border-left-color: #ff9900;">
-          <div class="card-title">Velocidade Máxima</div>
-          <div class="card-value" id="card-max-speed">-- <span class="card-unit">km/h</span></div>
-        </div>
-        <div class="card" style="border-left-color: #33cc33;">
-          <div class="card-title">Tempo de Viagem</div>
-          <div class="card-value" id="card-time">--:-- <span class="card-unit">h:m</span></div>
-        </div>
-        <div class="card" style="border-left-color: #e74c3c;">
-          <div class="card-title">----</div>
-          <div class="card-value" id="card-strain">----<span class="card-unit">ss</span></div>
-        </div>
-      </div>
-
-      <div id="map-wrapper">
-        <div id="map"></div>
-        
-        <div id="speed-legend">
-          <strong>Velocidade</strong><br />
-          <div class="legend-item"><i style="background: #ff0000"></i> > 40 km/h</div>
-          <div class="legend-item"><i style="background: #ff9900"></i> 20 - 40 km/h</div>
-          <div class="legend-item"><i style="background: #33cc33"></i> 5 - 20 km/h</div>
-          <div class="legend-item"><i style="background: #3388ff"></i> 0 - 5 km/h</div>
-        </div>
-      </div>
-    </div>
-    </body>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="assets/scripts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f0f2f5;
+        margin: 0;
+        padding: 15px;
+        height: 100vh;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .header-panel {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        margin-bottom: 15px;
+        flex-shrink: 0;
+      }
+      .header-panel h2 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 20px;
+        border-right: 2px solid #eee;
+        padding-right: 15px;
+      }
+      input {
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+        font-size: 14px;
+        width: 300px;
+      }
+      button {
+        background-color: #2c3e50;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      button:hover {
+        background-color: #1a252f;
+      }
+
+      #workspace {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        flex-grow: 1;
+        transition: all 0.3s ease-in-out;
+      }
+
+      .map-wrapper {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 10px;
+        flex-grow: 1;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+      #map {
+        height: 100%;
+        width: 100%;
+        border-radius: 5px;
+        z-index: 1;
+      }
+
+      .chart-wrapper {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 10px;
+        height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+      #chart-container {
+        height: 100%;
+        width: 100%;
+      }
+
+      .btn-fechar-grafico {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        background: #e74c3c;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        z-index: 10;
+        display: none;
+      }
+
+      #workspace.split-view .map-wrapper {
+        flex-grow: 0;
+        height: 50%;
+      }
+      #workspace.split-view .chart-wrapper {
+        flex-grow: 0;
+        height: 50%;
+        opacity: 1;
+        padding: 15px;
+      }
+      #workspace.split-view .btn-fechar-grafico {
+        display: block;
+      }
+
+      .legenda {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header-panel">
+      <h2>iMov Dashboard</h2>
+      <input
+        type="text"
+        id="batchId"
+        placeholder="Cole o Batch ID da viagem aqui..."
+      />
+      <button id="btnBuscar">Rastrear Viagem</button>
+    </div>
+
+    <div id="workspace">
+      <div class="map-wrapper">
+        <div id="map"></div>
+      </div>
+      <div class="chart-wrapper">
+        <button
+          class="btn-fechar-grafico"
+          id="btnFechar"
+          title="Fechar Gráfico"
+        >
+          ✖
+        </button>
+        <div id="chart-container"></div>
+      </div>
+    </div>
+
+    <script>
+      // ==========================================
+      // 1. INICIALIZAÇÃO DE COMPONENTES
+      // ==========================================
+      const map = L.map("map").setView([-14.235, -51.925], 4);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
+        map,
+      );
+
+      let polylines_desenhadas = L.layerGroup().addTo(map);
+      const chartDom = document.getElementById("chart-container");
+      const myChart = echarts.init(chartDom);
+      const workspace = document.getElementById("workspace");
+
+      // Legenda do Mapa
+      const legend = L.control({ position: "bottomright" });
+      legend.onAdd = () => {
+        const div = L.DomUtil.create("div", "legenda");
+        div.innerHTML = `<span style="background: #3498db; width: 20px; height: 3px; display: inline-block;"></span> Normal<br>
+                             <span style="background: #e74c3c; width: 20px; height: 5px; display: inline-block;"></span> Crítico (Clique para Analisar)`;
+        return div;
+      };
+      legend.addTo(map);
+
+      // ==========================================
+      // 2. LÓGICA DE URL E BUSCA
+      // ==========================================
+      // Lê o parâmetro ?id= da barra de endereços ao carregar a página
+      const urlParams = new URLSearchParams(window.location.search);
+      const idDaUrl = urlParams.get("id");
+
+      if (idDaUrl) {
+        document.getElementById("batchId").value = idDaUrl;
+        carregarMapa(idDaUrl);
+      }
+
+      document.getElementById("btnBuscar").addEventListener("click", () => {
+        const batchId = document.getElementById("batchId").value.trim();
+        if (batchId) {
+          // Atualiza a URL sem recarregar a página (fica lindo para compartilhar o link)
+          window.history.pushState({}, "", `?id=${batchId}`);
+          carregarMapa(batchId);
+        }
+      });
+
+      // ==========================================
+      // 3. CARREGAR O MAPA E EVENTOS DE CLIQUE
+      // ==========================================
+      function carregarMapa(batchId) {
+        fecharGrafico();
+        const API_URL = `https://trips.svxdigital.com/api/map/${batchId}`;
+
+        fetch(API_URL)
+          .then((res) =>
+            res.ok ? res.json() : Promise.reject("Viagem não encontrada."),
+          )
+          .then((trechos) => {
+            polylines_desenhadas.clearLayers();
+            let bounds = L.latLngBounds();
+
+            trechos.forEach((trecho) => {
+              const coords = trecho.geo_points.map((p) => [p.lat, p.lng]);
+              const isCritical = trecho.is_critical;
+
+              const linha = L.polyline(coords, {
+                color: isCritical ? "#e74c3c" : "#3498db",
+                weight: isCritical ? 7 : 4,
+                opacity: 0.9,
+              });
+
+              if (isCritical) {
+                linha.bindTooltip(
+                  "⚠️ Trecho Crítico<br>Clique para ver o gráfico",
+                );
+                linha.setStyle({ cursor: "pointer" });
+              }
+
+              linha.on("click", () => {
+                abrirGrafico(batchId, trecho.parquet_ref);
+              });
+
+              polylines_desenhadas.addLayer(linha);
+              bounds.extend(linha.getBounds());
+            });
+
+            if (trechos.length > 0)
+              map.fitBounds(bounds, { padding: [50, 50] });
+          })
+          .catch((err) => alert(err));
+      }
+
+      // ==========================================
+      // 4. LÓGICA DO GRÁFICO (SPLIT VIEW)
+      // ==========================================
+      function abrirGrafico(batchId, parquetRef) {
+        workspace.classList.add("split-view");
+
+        setTimeout(() => {
+          map.invalidateSize();
+          myChart.resize();
+        }, 300);
+
+        myChart.showLoading();
+
+        fetch(`https://trips.svxdigital.com/api/chart/${batchId}/${parquetRef}`)
+          .then((res) =>
+            res.ok ? res.json() : Promise.reject("Gráfico indisponível."),
+          )
+          .then((data) => {
+            myChart.hideLoading();
+            const eixoX = data.map((i) =>
+              new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
+            );
+            const eixoY_Max = data.map((i) => i.max_strain);
+            const eixoY_Min = data.map((i) => i.min_strain);
+            const eixoY_Avg = data.map((i) => i.avg_strain);
+
+            myChart.setOption({
+              title: {
+                text: `Análise do Trecho: ${parquetRef}`,
+                textStyle: { fontSize: 14 },
+              },
+              tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
+              grid: {
+                left: "3%",
+                right: "4%",
+                bottom: "10%",
+                top: "15%",
+                containLabel: true,
+              },
+              dataZoom: [{ type: "inside" }, { type: "slider", bottom: 0 }],
+              xAxis: { type: "category", boundaryGap: false, data: eixoX },
+              yAxis: { type: "value", scale: true },
+              series: [
+                {
+                  name: "Máxima",
+                  type: "line",
+                  data: eixoY_Max,
+                  color: "#e74c3c",
+                  showSymbol: false,
+                },
+                {
+                  name: "Média",
+                  type: "line",
+                  data: eixoY_Avg,
+                  color: "#f1c40f",
+                  type: "dashed",
+                  showSymbol: false,
+                },
+                {
+                  name: "Mínima",
+                  type: "line",
+                  data: eixoY_Min,
+                  color: "#3498db",
+                  showSymbol: false,
+                },
+              ],
+            });
+          })
+          .catch((err) => {
+            myChart.hideLoading();
+            alert(err);
+          });
+      }
+
+      function fecharGrafico() {
+        workspace.classList.remove("split-view");
+        setTimeout(() => map.invalidateSize(), 300);
+      }
+
+      document
+        .getElementById("btnFechar")
+        .addEventListener("click", fecharGrafico);
+      window.addEventListener("resize", () => {
+        map.invalidateSize();
+        myChart.resize();
+      });
+    </script>
   </body>
 </html>
