@@ -13,7 +13,6 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 
     <style>
-      /* A regra mágica que conserta os tamanhos */
       * {
         box-sizing: border-box;
       }
@@ -69,33 +68,30 @@
         background-color: #1a252f;
       }
 
-      /* Área de Trabalho Principal (Organização Vertical: Cima/Baixo) */
       #workspace {
         display: flex;
         flex-direction: column;
         gap: 15px;
-        flex-grow: 1; /* Preenche o resto da tela */
+        flex-grow: 1;
         height: 100%;
         transition: all 0.3s ease;
       }
 
-      /* 🗺️ CONTAINER SUPERIOR (Mapa + Sidebar) */
       .upper-container {
         display: flex;
-        flex-direction: row; /* Alinhamento Horizontal (Lado a Lado) */
+        flex-direction: row;
         gap: 15px;
-        flex-grow: 1; /* Cima começa ocupando 100% da altura */
+        flex-grow: 1;
         transition: all 0.3s ease;
       }
 
-      /* 📊 SIDEBAR (O NOVO PAINEL À ESQUERDA) */
       .sidebar-wrapper {
         background: white;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         padding: 20px;
-        width: 500px; /* Largura fixa solicitada */
-        flex-shrink: 0; /* Não deixa a sidebar esmagar */
+        width: 350px;
+        flex-shrink: 0;
         display: flex;
         flex-direction: column;
         gap: 15px;
@@ -201,6 +197,7 @@
     </style>
   </head>
   <body>
+    <img src="assets/imov.png" width="300px" />
     <div class="header-panel">
       <h2>iMov Dash Central</h2>
       <input
