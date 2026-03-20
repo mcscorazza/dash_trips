@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Painel iMov Telemetria</title>
+    <title>Painel iMov Central</title>
 
     <link
       rel="stylesheet"
@@ -13,6 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 
     <style>
+      /* A regra mágica que conserta os tamanhos */
       * {
         box-sizing: border-box;
       }
@@ -28,9 +29,10 @@
         overflow: hidden;
       }
 
+      /* Cabeçalho de Busca */
       .header-panel {
         background: white;
-        padding: 15px 20px;
+        padding: 10px 20px;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         display: flex;
@@ -42,13 +44,16 @@
       .header-panel h2 {
         margin: 0;
         color: #2c3e50;
-        font-size: 20px;
+        font-size: 18px;
+        border-right: 1px solid #eee;
+        padding-right: 15px;
       }
       input {
         padding: 8px;
         border: 1px solid #ced4da;
         border-radius: 5px;
         width: 300px;
+        font-size: 13px;
       }
       button {
         background-color: #2c3e50;
@@ -58,27 +63,74 @@
         border-radius: 5px;
         font-weight: bold;
         cursor: pointer;
+        font-size: 13px;
       }
       button:hover {
         background-color: #1a252f;
       }
 
+      /* Área de Trabalho Principal (Organização Vertical: Cima/Baixo) */
       #workspace {
         display: flex;
         flex-direction: column;
         gap: 15px;
-        flex-grow: 1;
-        transition: 0.3s;
+        flex-grow: 1; /* Preenche o resto da tela */
         height: 100%;
+        transition: all 0.3s ease;
       }
 
+      /* 🗺️ CONTAINER SUPERIOR (Mapa + Sidebar) */
+      .upper-container {
+        display: flex;
+        flex-direction: row; /* Alinhamento Horizontal (Lado a Lado) */
+        gap: 15px;
+        flex-grow: 1; /* Cima começa ocupando 100% da altura */
+        transition: all 0.3s ease;
+      }
+
+      /* 📊 SIDEBAR (O NOVO PAINEL À ESQUERDA) */
+      .sidebar-wrapper {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        width: 500px; /* Largura fixa solicitada */
+        flex-shrink: 0; /* Não deixa a sidebar esmagar */
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        overflow-y: auto; /* Se o conteúdo da sidebar crescer, rola só ela */
+      }
+      .sidebar-wrapper h3 {
+        margin: 0;
+        color: #34495e;
+        font-size: 16px;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
+      }
+      .info-label {
+        font-size: 12px;
+        font-weight: bold;
+        color: #6c757d;
+        text-transform: uppercase;
+      }
+      .info-value {
+        font-size: 14px;
+        color: #2c3e50;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+      }
+
+      /* 🗺️ CONTAINER DO MAPA (Preenche o resto da largura à direita) */
       .map-wrapper {
         background: white;
         border-radius: 8px;
         padding: 10px;
-        flex-grow: 1;
+        flex-grow: 1; /* Ocupa todo o resto da largura */
         position: relative;
-        transition: 0.3s;
+        transition: all 0.3s ease;
       }
       #map {
         height: 100%;
@@ -87,14 +139,16 @@
         z-index: 1;
       }
 
+      /* 📉 CONTAINER DO GRÁFICO (Ocupa toda a LARGURA da parte de baixo) */
       .chart-wrapper {
         background: white;
         border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         padding: 0 15px;
-        height: 0;
+        height: 0; /* Começa esmagado */
         opacity: 0;
         overflow: hidden;
-        transition: 0.3s;
+        transition: all 0.3s ease;
         position: relative;
       }
       #chart-container {
@@ -102,6 +156,7 @@
         width: 100%;
       }
 
+      /* Botão para fechar o gráfico */
       .btn-fechar-grafico {
         position: absolute;
         top: 15px;
@@ -117,13 +172,18 @@
         display: none;
       }
 
-      #workspace.split-view .map-wrapper {
+      /* ==========================================
+        🚀 CLASSE MÁGICA: Quando ativada (Split View)
+        ========================================== */
+      /* Cima ocupa 50% - metade do gap vertical (7.5px) */
+      #workspace.split-view .upper-container {
         flex-grow: 0;
-        height: calc(40% - 7.5px);
+        height: calc(50% - 7.5px);
       }
+      /* Baixo ocupa 50% - metade do gap vertical (7.5px) */
       #workspace.split-view .chart-wrapper {
         flex-grow: 0;
-        height: calc(60% - 7.5px);
+        height: calc(50% - 7.5px);
         opacity: 1;
         padding: 40px 15px 15px 15px;
       }
@@ -142,7 +202,7 @@
   </head>
   <body>
     <div class="header-panel">
-      <h2>iMov Dashboard</h2>
+      <h2>iMov Dash Central</h2>
       <input
         type="text"
         id="batchId"
@@ -152,9 +212,32 @@
     </div>
 
     <div id="workspace">
-      <div class="map-wrapper">
-        <div id="map"></div>
+      <div class="upper-container">
+        <div class="sidebar-wrapper">
+          <h3>Informações da Viagem</h3>
+
+          <div id="trip-details">
+            <div class="info-label">Status da Análise</div>
+            <div class="info-value" style="color: #c0392b; font-weight: bold">
+              ⚠️ Consolidação Concluída com Alertas
+            </div>
+
+            <div class="info-label">Duração da Viagem</div>
+            <div class="info-value">12 horas e 34 minutos</div>
+
+            <div class="info-label">Pontos Consolidados</div>
+            <div class="info-value">1.840.210 pontos</div>
+
+            <div class="info-label">Total de Trechos no RDS</div>
+            <div class="info-value">75 trechos (10 minutos cada)</div>
+          </div>
+        </div>
+
+        <div class="map-wrapper">
+          <div id="map"></div>
+        </div>
       </div>
+
       <div class="chart-wrapper">
         <button class="btn-fechar-grafico" id="btnFechar">✖</button>
         <div id="chart-container"></div>
@@ -163,15 +246,18 @@
 
     <script>
       // ==========================================
-      // 1. INICIALIZAÇÃO E MAPA
+      // 1. INICIALIZAÇÃO DE COMPONENTES BÁSICOS
       // ==========================================
       const map = L.map("map").setView([-14.235, -51.925], 4);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
         map,
       );
+
       let polylines_desenhadas = L.layerGroup().addTo(map);
       const workspace = document.getElementById("workspace");
       const chartDom = document.getElementById("chart-container");
+
+      // Declaramos o myChart, mas NÃO inicializamos ainda (Lazy Loading)
       let myChart = null;
       let currentFetch = null;
 
@@ -185,7 +271,9 @@
       };
       legend.addTo(map);
 
-      // Lógica de URL
+      // ==========================================
+      // 2. LÓGICA DE URL E BUSCA DO MAPA
+      // ==========================================
       const urlParams = new URLSearchParams(window.location.search);
       const idDaUrl = urlParams.get("id");
       if (idDaUrl) {
@@ -213,14 +301,17 @@
             let bounds = L.latLngBounds();
             trechos.forEach((trecho) => {
               const coords = trecho.geo_points.map((p) => [p.lat, p.lng]);
+              const isCritical = trecho.is_critical;
               const linha = L.polyline(coords, {
-                color: trecho.is_critical ? "#e74c3c" : "#3498db",
-                weight: trecho.is_critical ? 7 : 4,
+                color: isCritical ? "#e74c3c" : "#3498db",
+                weight: isCritical ? 7 : 4,
                 opacity: 0.9,
-                cursor: trecho.is_critical ? "pointer" : "default",
+                cursor: isCritical ? "pointer" : "default",
               });
-              if (trecho.is_critical) {
-                linha.bindTooltip("⚠️ Trecho Crítico<br>Clique para analisar");
+              if (isCritical) {
+                linha.bindTooltip(
+                  "⚠️ Trecho Crítico<br>Clique para ver o gráfico",
+                );
                 linha.on("click", () =>
                   abrirGrafico(batchId, trecho.parquet_ref),
                 );
@@ -235,16 +326,25 @@
       }
 
       // ==========================================
-      // 4. LÓGICA DO GRÁFICO (COM AS LINHAS DE REFERÊNCIA)
+      // 4. LÓGICA DO GRÁFICO (OPÇÃO NUCLEAR + SINCRONISMO)
       // ==========================================
       function abrirGrafico(batchId, parquetRef) {
         if (currentFetch) currentFetch.abort();
         currentFetch = new AbortController();
+
+        // 1. Abre a tela (A classe split-view faz o mapa e sidebar subirem e o gráfico aparecer)
         workspace.classList.add("split-view");
 
-        // Texto de Carregamento
-        chartDom.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #e74c3c; font-weight: bold; font-size: 15px;">⏳ Buscando dados avançados na EC2 e calculando médias...</div>`;
+        // 2. Garante que o ECharts antigo seja completamente destruído
+        if (myChart) {
+          echarts.dispose(chartDom);
+          myChart = null;
+        }
 
+        // 3. Coloca um aviso de carregamento em HTML PURO
+        chartDom.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #e74c3c; font-weight: bold; font-size: 15px;">⏳ Buscando dados avançados na EC2 e calculando médias globais...</div>`;
+
+        // 4. Sincronismo de tempo (A Promise.all amarra a animação CSS com o Fetch)
         const tempoDaAnimacao = new Promise((resolve) =>
           setTimeout(resolve, 350),
         );
@@ -257,12 +357,13 @@
 
         Promise.all([buscaDosDados, tempoDaAnimacao])
           .then(([dataResponse]) => {
-            chartDom.innerHTML = "";
-            if (myChart) echarts.dispose(chartDom);
+            chartDom.innerHTML = ""; // Remove o texto de carregamento
+
+            // O SEGREDO: Só inicializa o ECharts AGORA, com a div já grande e os dados na mão
             myChart = echarts.init(chartDom);
 
             const pointsData = dataResponse.points;
-            const globalAvg = Math.abs(dataResponse.global_average);
+            const globalAvg = Math.abs(dataResponse.global_average); // Usamos o absoluto para as médias (+/-)
 
             const eixoX = pointsData.map((i) =>
               new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
@@ -312,7 +413,6 @@
                   data: eixoY_Min,
                   itemStyle: { color: "#3498db" },
                   showSymbol: false,
-
                   markLine: {
                     symbol: ["none", "none"],
                     label: {
@@ -345,7 +445,6 @@
                         name: "Gatilho -1.8x",
                         lineStyle: { color: "#c0392b", type: "dotted" },
                       },
-
                       {
                         yAxis: globalAvg * 1.5,
                         name: "Alerta 1.5x",
@@ -356,7 +455,6 @@
                         name: "Alerta -1.5x",
                         lineStyle: { color: "#e67e22", type: "dashed" },
                       },
-
                       {
                         yAxis: globalAvg,
                         name: "Média Global",
@@ -368,8 +466,9 @@
               ],
             };
 
+            // Pinta o gráfico na tela de uma vez só
             myChart.setOption(option);
-            myChart.resize();
+            myChart.resize(); // Uma garantia extra para ele se espreguiçar na tela nova
           })
           .catch((err) => {
             if (err.name === "AbortError") return;
@@ -380,15 +479,25 @@
       function fecharGrafico() {
         if (currentFetch) currentFetch.abort();
         workspace.classList.remove("split-view");
+        if (myChart) {
+          echarts.dispose(chartDom);
+          myChart = null;
+        }
         chartDom.innerHTML = "";
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 300);
       }
+
       document
         .getElementById("btnFechar")
         .addEventListener("click", fecharGrafico);
+
       window.addEventListener("resize", () => {
         map.invalidateSize();
-        if (myChart && workspace.classList.contains("split-view"))
+        if (myChart && workspace.classList.contains("split-view")) {
           myChart.resize();
+        }
       });
     </script>
   </body>
