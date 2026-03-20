@@ -34,6 +34,33 @@ app.get('/api/trips', async (req, res) => {
 });
 
 // ==========================================
+// ROTA DO MAPA: Traz as coordenadas e a criticidade
+// ==========================================
+app.get('/api/map/:batch_id', async (req, res) => {
+  const { batch_id } = req.params;
+
+  try {
+    const query = `
+            SELECT geo_points, is_critical, parquet_ref 
+            FROM trip_geolocations 
+            WHERE batch_id = $1 
+            ORDER BY start_timestamp ASC
+        `;
+
+    const result = await db.query(query, [batch_id]);
+
+    if (result.rows.length > 0) {
+      res.json(result.rows);
+    } else {
+      res.status(404).json({ error: "Nenhuma coordenada encontrada para esta viagem." });
+    }
+  } catch (error) {
+    console.error("Erro ao buscar coordenadas no RDS:", error);
+    res.status(500).json({ error: "Falha interna no servidor." });
+  }
+});
+
+// ==========================================
 // ROTA DO GRÁFICO: Atualizada com a Média Global
 // ==========================================
 app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
@@ -73,35 +100,6 @@ app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
   } catch (error) {
     console.error("Erro no Node.js:", error);
     res.status(500).json({ error: "Falha interna." });
-  }
-});
-
-app.get('/api/chart/:batch_id/:parquet_ref', async (req, res) => {
-  const { batch_id, parquet_ref } = req.params;
-
-  try {
-    console.log(`Buscando dados do gráfico no RDS para: ${parquet_ref}`);
-
-    const query = `
-            SELECT chart_data 
-            FROM trip_geolocations 
-            WHERE batch_id = $1 AND parquet_ref = $2
-        `;
-
-    const result = await db.query(query, [batch_id, parquet_ref]);
-
-    if (result.rows.length > 0) {
-      const jsonData = result.rows[0].chart_data;
-
-      console.log(`Sucesso! JSON retornado em tempo recorde.`);
-      res.json(jsonData);
-    } else {
-      res.status(404).json({ error: "Trecho não encontrado no banco de dados." });
-    }
-
-  } catch (error) {
-    console.error("Erro ao buscar no PostgreSQL:", error);
-    res.status(500).json({ error: "Falha interna no servidor." });
   }
 });
 
