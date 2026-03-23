@@ -710,48 +710,95 @@
               layerEstrutural.addLayer(linhaEstrutural);
 
               // --------------------------------------------------
-              // CAMADA 2: Gradiente de Velocidade
+              // CAMADA 2: Gradiente de Velocidade (Ponto a Ponto Suavizado)
               // --------------------------------------------------
-              // DICA: Substitua "trecho.avg_speed" pela variável real do seu banco de dados.
-              // Como não sei se ela já existe, usei Math.random para você ver funcionando.
               const velocidades = calcularVelocidadesSuavizadas(
                 trecho.geo_points,
               );
 
               let coordsSegmentoAtual = [];
+              let velocidadesSegmentoAtual = [];
               let corAtual = null;
 
               for (let i = 0; i < trecho.geo_points.length; i++) {
                 const pt = trecho.geo_points[i];
                 const vel = velocidades[i];
 
-                let corDoPonto = "#033eff"; // Azul (< 5 km/h)
-                if (vel >= 5 && vel < 25) corDoPonto = "#27ae60"; // Verde
-                if (vel >= 25 && vel < 50) corDoPonto = "#f39c12"; // Laranja
-                if (vel > 50) corDoPonto = "#c0392b"; // Vermelho
+                let corDoPonto = "#c0392b"; // Vermelho (< 20 km/h)
+                if (vel >= 20 && vel <= 50) corDoPonto = "#f39c12"; // Laranja
+                if (vel > 50) corDoPonto = "#27ae60"; // Verde
 
                 if (corDoPonto !== corAtual && coordsSegmentoAtual.length > 0) {
+                  const somaVel = velocidadesSegmentoAtual.reduce(
+                    (a, b) => a + b,
+                    0,
+                  );
+                  const mediaSegmento =
+                    somaVel / velocidadesSegmentoAtual.length;
+
+                  let descStatus = "Manobra / Parada";
+                  if (corAtual === "#f39c12")
+                    descStatus = "Velocidade Reduzida";
+                  if (corAtual === "#27ae60")
+                    descStatus = "Velocidade de Cruzeiro";
+
                   const linhaVel = L.polyline(coordsSegmentoAtual, {
                     color: corAtual,
                     weight: 5,
                     opacity: 0.8,
                   });
+
+                  linhaVel.bindTooltip(
+                    `
+                        <div style="font-size: 11px; line-height: 1.4;">
+                            <b style="color: ${corAtual}; text-transform: uppercase;">${descStatus}</b><br>
+                            Velocidade Média: <b>${mediaSegmento.toFixed(1)} km/h</b>
+                        </div>
+                      `,
+                    { sticky: true, opacity: 0.9 },
+                  );
+
                   layerVelocidade.addLayer(linhaVel);
+
                   coordsSegmentoAtual = [
                     coordsSegmentoAtual[coordsSegmentoAtual.length - 1],
                   ];
+                  velocidadesSegmentoAtual = [velocidades[i]];
+                } else {
+                  velocidadesSegmentoAtual.push(vel);
                 }
 
                 coordsSegmentoAtual.push([pt.lat, pt.lng]);
                 corAtual = corDoPonto;
               }
-
               if (coordsSegmentoAtual.length > 1) {
+                const somaVel = velocidadesSegmentoAtual.reduce(
+                  (a, b) => a + b,
+                  0,
+                );
+                const mediaSegmento = somaVel / velocidadesSegmentoAtual.length;
+
+                let descStatus = "Manobra / Parada";
+                if (corAtual === "#f39c12") descStatus = "Velocidade Reduzida";
+                if (corAtual === "#27ae60")
+                  descStatus = "Velocidade de Cruzeiro";
+
                 const linhaVel = L.polyline(coordsSegmentoAtual, {
                   color: corAtual,
                   weight: 5,
                   opacity: 0.8,
                 });
+
+                linhaVel.bindTooltip(
+                  `
+                    <div style="font-size: 11px; line-height: 1.4;">
+                        <b style="color: ${corAtual}; text-transform: uppercase;">${descStatus}</b><br>
+                        Velocidade Média: <b>${mediaSegmento.toFixed(1)} km/h</b>
+                    </div>
+                  `,
+                  { sticky: true, opacity: 0.9 },
+                );
+
                 layerVelocidade.addLayer(linhaVel);
               }
 
