@@ -2,15 +2,18 @@
 // js/main.js
 // ==========================================
 import { fetchListaDeViagens, fetchDadosDoMapa, fetchTrechoCritico, fetchViagemCompleta } from './services/api.js';
-import { calcularVelocidadesSuavizadas, buscarCoordenadaPorTempo } from './utils/math.js';
+import { fetchListaDeViagens, fetchDadosDoMapa, fetchTrechoCritico, fetchViagemCompleta } from './services/api.js';
+import { calcularVelocidadesSuavizadas, buscarCoordenadaPorTempo, calcularDistanciaHaversine } from './utils/math.js';
 
 // 1. ESTADO GLOBAL E INICIALIZAÇÃO
 const map = L.map("map").setView([-14.235, -51.925], 4);
+
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
 let layerEstrutural = L.layerGroup().addTo(map);
 let layerVelocidade = L.layerGroup();
 let todasCoordenadasViagem = [];
+let viagensDynamo = [];
 let cursorMarker = L.circleMarker([0, 0], { radius: 6, color: "white", weight: 2, fillColor: "#e74c3c", fillOpacity: 1, zIndexOffset: 1000 });
 
 const workspace = document.getElementById("workspace");
@@ -36,6 +39,9 @@ legend.addTo(map);
 async function inicializarPainel() {
   try {
     const trips = await fetchListaDeViagens();
+
+    viagensDynamo = trips;
+
     renderizarListaNaGaveta(trips);
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -167,6 +173,9 @@ async function carregarMapa(batchId) {
 
     todasCoordenadasViagem.sort((a, b) => a.t - b.t);
     if (trechos.length > 0) map.fitBounds(bounds, { padding: [30, 30] });
+
+    atualizarResumoViagem(batchId, trechos, todasCoordenadasViagem);
+
   } catch (err) { alert(err); }
 }
 
@@ -326,3 +335,87 @@ window.addEventListener("resize", () => {
   if (bottomChart && workspace.classList.contains("split-view")) bottomChart.resize();
   if (modalChart && modalOverlay.classList.contains("active")) modalChart.resize();
 });
+
+// ==========================================
+// 10. ATUALIZAÇÃO DINÂMICA DA SIDEBAR
+// ==========================================
+function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
+  const container = document.getElementById("trip-details");
+
+  if (!trechos || trechos.length === 0 || coordenadasGlobais.length === 0) {
+    container.innerHTML = `<div class="info-value" style="color: #e74c3c;">Dados da viagem incompletos.</div>`;
+    return;
+  }
+
+  // 1. BUSCA O CONTEXTO NO DYNAMODB
+  // Procura na nossa memória a viagem que tem esse exato batch_id
+  const tripData = viagensDynamo.find(t => t.batch_id === batchId) || {};
+
+  // Como o campo pode vir como 'status' ou 'trip_status' dependendo do seu backend:
+  const statusOperacional = tripData.status || tripData.trip_status || "DESCONHECIDO";
+  const datalogger = tripData.datalogger_id || "N/A";
+  const cidadeOrigem = tripData.city_start || "Origem Indisponível";
+  const cidadeDestino = tripData.city_end || tripData.city_current || "Destino Indisponível";
+
+  // 2. CÁLCULO DE TEMPO (DURAÇÃO FÍSICA)
+  const tInicio = coordenadasGlobais[0].t;
+  const tFim = coordenadasGlobais[coordenadasGlobais.length - 1].t;
+  const duracaoSegundos = tFim - tInicio;
+  const horas = Math.floor(duracaoSegundos / 3600);
+  const minutos = Math.floor((duracaoSegundos % 3600) / 60);
+
+  // 3. CÁLCULO DE DISTÂNCIA E PONTOS LIDOS
+  const totalPontos = coordenadasGlobais.length.toLocaleString('pt-BR');
+  let distanciaKm = 0;
+  for (let i = 1; i < coordenadasGlobais.length; i++) {
+    distanciaKm += calcularDistanciaHaversine(
+      coordenadasGlobais[i - 1].lat, coordenadasGlobais[i - 1].lng,
+      coordenadasGlobais[i].lat, coordenadasGlobais[i].lng
+    );
+  }
+
+  // 4. ANÁLISE DE RISCO (PostgreSQL)
+  const qtdCriticos = trechos.filter(t => t.is_critical).length;
+  const statusTexto = qtdCriticos > 0 ? `⚠️ Alertas Críticos (${qtdCriticos})` : `✅ Operação Normal`;
+  const statusCor = qtdCriticos > 0 ? "#e74c3c" : "#27ae60";
+
+  // 5. INJEÇÃO NO HTML (O Novo Layout do Cockpit)
+  container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #eee;">
+            <div>
+                <div style="font-size: 10px; color: #7f8c8d; text-transform: uppercase; font-weight: bold;">Equipamento</div>
+                <div style="font-size: 14px; color: #2c3e50; font-weight: bold;">📟 ${datalogger}</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 10px; color: #7f8c8d; text-transform: uppercase; font-weight: bold;">Status DB</div>
+                <div style="font-size: 11px; font-weight: bold; color: white; background: #34495e; padding: 2px 8px; border-radius: 10px; display: inline-block;">${statusOperacional}</div>
+            </div>
+        </div>
+
+        <div class="info-label">Trajeto (Origem ➔ Destino)</div>
+        <div class="info-value" style="font-size: 12px; line-height: 1.5;">
+            <span style="color: #3498db;">📍</span> ${cidadeOrigem}<br>
+            <span style="color: #27ae60;">🏁</span> ${cidadeDestino}
+        </div>
+
+        <div class="info-label">Diagnóstico de Tensão</div>
+        <div class="info-value" style="color: ${statusCor}; font-weight: bold">${statusTexto}</div>
+
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <div style="flex: 1;">
+                <div class="info-label">Duração</div>
+                <div class="info-value" style="font-size: 15px; border: none;"><b>${horas}h ${minutos}m</b></div>
+            </div>
+            <div style="flex: 1;">
+                <div class="info-label">Distância</div>
+                <div class="info-value" style="font-size: 15px; border: none;"><b>${distanciaKm.toFixed(1)} km</b></div>
+            </div>
+        </div>
+
+        <div class="info-label">Volume de Dados Lidos</div>
+        <div class="info-value">${totalPontos} pontos de GPS/Sensores</div>
+        
+        <div class="info-label" style="margin-top: 10px;">ID do Lote (Batch ID)</div>
+        <div class="info-value" style="font-size: 10px; color: #95a5a6; word-break: break-all; border: none;">${batchId}</div>
+    `;
+}
