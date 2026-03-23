@@ -505,9 +505,10 @@
             "
           >
             <b>Legenda Vel:</b><br />
-            <span style="color: #c0392b">■</span> 0 a 20 km/h<br />
-            <span style="color: #f39c12">■</span> 20 a 50 km/h<br />
-            <span style="color: #27ae60">■</span> + 50 km/h
+            <span style="color: #033eff">■</span> 0 a 5 km/h<br />
+            <span style="color: #27ae60">■</span> 0 a 25 km/h<br />
+            <span style="color: #f39c12">■</span> 25 a 50 km/h<br />
+            <span style="color: #c0392b">■</span> + 50 km/h
           </div>
         </div>
       </div>
@@ -713,15 +714,14 @@
               // --------------------------------------------------
               // DICA: Substitua "trecho.avg_speed" pela variável real do seu banco de dados.
               // Como não sei se ela já existe, usei Math.random para você ver funcionando.
-              const velocidadeKmH =
-                trecho.avg_speed !== undefined
-                  ? trecho.avg_speed
-                  : Math.random() * 80;
+              const velocidadeKmH = calcularVelocidadeTrecho(trecho.geo_points);
 
-              let corVelocidade = "#c0392b"; // Vermelho (Lento: < 20 km/h)
-              if (velocidadeKmH >= 20 && velocidadeKmH <= 50)
-                corVelocidade = "#f39c12"; // Amarelo/Laranja (Médio)
-              if (velocidadeKmH > 50) corVelocidade = "#27ae60"; // Verde (Rápido)
+              let corVelocidade = "#"; // Vermelho (Lento: < 20 km/h)
+              if (velocidadeKmH >= 5 && velocidadeKmH <= 25)
+                corVelocidade = "#27ae60";
+              if (velocidadeKmH >= 25 && velocidadeKmH <= 50)
+                corVelocidade = "#f39c12";
+              if (velocidadeKmH > 50) corVelocidade = "#c0392b"; // Vermelho (Rápido)
 
               const linhaVelocidade = L.polyline(coords, {
                 color: corVelocidade,
@@ -1068,6 +1068,47 @@
           }
         }
         return melhorOpcao;
+      }
+
+      // ==========================================
+      // 10. MOTORES MATEMÁTICOS (FÍSICA E GPS)
+      // ==========================================
+      function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLon = ((lon2 - lon1) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+      }
+
+      function calcularVelocidadeTrecho(pontosDeGPS) {
+        if (!pontosDeGPS || pontosDeGPS.length < 2) return 0;
+
+        let distanciaTotalKm = 0;
+
+        for (let i = 1; i < pontosDeGPS.length; i++) {
+          distanciaTotalKm += calcularDistanciaHaversine(
+            pontosDeGPS[i - 1].lat,
+            pontosDeGPS[i - 1].lng,
+            pontosDeGPS[i].lat,
+            pontosDeGPS[i].lng,
+          );
+        }
+
+        const tempoSegundos =
+          pontosDeGPS[pontosDeGPS.length - 1].t - pontosDeGPS[0].t;
+
+        if (tempoSegundos <= 0) return 0;
+
+        const tempoHoras = tempoSegundos / 3600;
+
+        return distanciaTotalKm / tempoHoras;
       }
     </script>
   </body>
