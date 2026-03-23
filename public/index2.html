@@ -513,7 +513,7 @@
       });
 
       // ==========================================
-      // RENDERIZAR GAVETA (Layout dos Cards)
+      // RENDERIZAR GAVETA (Layout e Cliques)
       // ==========================================
       function renderizarListaNaGaveta(trips) {
         const container = document.getElementById("lista-viagens-container");
@@ -539,12 +539,21 @@
                   <div class="trip-status-badge" style="background-color: ${corBadge};">${trip.trip_status}</div>
               `;
 
-          // O clique na gaveta funciona exatamente como a busca manual
-          card.onclick = () => {
-            document.getElementById("batchId").value = trip.batch_id;
-            window.history.pushState({}, "", `?id=${trip.batch_id}`);
-            carregarMapa(trip.batch_id);
-          };
+          card.addEventListener("click", () => {
+            const idAlvo = trip.batch_id;
+            console.log(`[Gaveta] Rastreando a viagem: ${idAlvo}`); // Raio-x no console
+
+            document.getElementById("batchId").value = idAlvo;
+            window.history.pushState({}, "", `?id=${idAlvo}`);
+
+            const gaveta = document.querySelector(".trip-list-drawer");
+            gaveta.style.left = "-320px";
+            setTimeout(() => {
+              gaveta.style.left = "";
+            }, 500);
+
+            carregarMapa(idAlvo);
+          });
 
           container.appendChild(card);
         });
