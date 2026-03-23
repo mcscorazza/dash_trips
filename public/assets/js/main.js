@@ -260,7 +260,7 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
 
   instanciaDoGrafico.setOption({
     tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
-    grid: { left: "3%", right: "15%", bottom: "20%", top: "2%", containLabel: true },
+    grid: { left: "3%", right: "15%", bottom: "5%", top: "2%", containLabel: true },
     legend: {
       data: ["Máxima", "Média", "Mínima"],
       orient: "vertical",
@@ -269,7 +269,7 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
       textStyle: { fontSize: 11 }
     },
 
-    dataZoom: [{ type: "inside" }, { type: "slider", bottom: 0 }],
+    dataZoom: [{ type: "inside" }, { type: "slider", bottom: 5 }],
     xAxis: { type: "category", boundaryGap: false, data: eixoX, axisLabel: { fontSize: 10 } },
     yAxis: { type: "value", scale: true, name: "Truque_A", axisLabel: { fontSize: 10 } },
     series: [
