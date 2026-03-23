@@ -438,7 +438,7 @@
         if (currentModalFetch) currentModalFetch.abort();
         currentModalFetch = new AbortController();
 
-        modalOverlay.classList.add("active"); // Mostra o Modal com efeito Blur
+        modalOverlay.classList.add("active");
         if (modalChart) {
           echarts.dispose(modalChartDom);
           modalChart = null;
@@ -446,7 +446,6 @@
 
         modalChartDom.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #e74c3c; font-weight: bold;">⏳ Carregando Trecho Crítico...</div>`;
 
-        // Sincronismo para a animação do modal (scale in)
         const tempoDaAnimacao = new Promise((resolve) =>
           setTimeout(resolve, 300),
         );
@@ -459,14 +458,12 @@
           .then(([dataResponse]) => {
             modalChartDom.innerHTML = "";
             modalChart = echarts.init(modalChartDom);
+
             renderizarGraficoEcharts(
               modalChart,
               dataResponse,
               `Análise Detalhada do Trecho: ${parquetRef}`,
             );
-            bottomChart.on("globalout", function () {
-              if (map.hasLayer(cursorMarker)) map.removeLayer(cursorMarker);
-            });
           })
           .catch((err) => {
             if (err.name !== "AbortError")
