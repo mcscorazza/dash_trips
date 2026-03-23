@@ -259,10 +259,10 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
   const eixoY_Avg = pointsData.map((i) => i.avg !== undefined ? i.avg : i.avg_strain);
 
   instanciaDoGrafico.setOption({
-    title: { text: titulo, textStyle: { fontSize: 13 }, subtext: `Média Global: ${globalAvg.toFixed(2)} kgf`, subtextStyle: { color: "#2c3e50", fontStyle: "italic", fontSize: 11 } },
+    // title: { text: titulo, textStyle: { fontSize: 13 }, subtext: `Média Global: ${globalAvg.toFixed(2)} kgf`, subtextStyle: { color: "#2c3e50", fontStyle: "italic", fontSize: 11 } },
     tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
     grid: { left: "3%", right: "10%", bottom: "10%", top: "22%", containLabel: true },
-    legend: { data: ["Máxima", "Média", "Mínima"], top: "12%", textStyle: { fontSize: 11 } },
+    legend: { data: ["Máxima", "Média", "Mínima"], right: "12%", textStyle: { fontSize: 11 } },
     dataZoom: [{ type: "inside" }, { type: "slider", bottom: 0 }],
     xAxis: { type: "category", boundaryGap: false, data: eixoX, axisLabel: { fontSize: 10 } },
     yAxis: { type: "value", scale: true, name: "Eng(kgf)", axisLabel: { fontSize: 10 } },
