@@ -187,8 +187,8 @@
         color: white;
         border: none;
         border-radius: 50%;
-        width: 25px;
-        height: 25px;
+        width: 30px;
+        height: 30px;
         cursor: pointer;
         z-index: 10;
         display: none;
@@ -278,6 +278,97 @@
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         font-size: 12px;
       }
+
+      /* ==========================================
+        🚀 GAVETA LATERAL FLUTUANTE (TRIP LIST)
+        ========================================== */
+      .trip-list-drawer {
+        position: fixed;
+        top: 0;
+        left: -320px; /* Começa escondida fora da tela */
+        width: 320px;
+        height: 100vh;
+        background: white;
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.15);
+        z-index: 9999;
+        transition: left 0.3s ease-in-out;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* O Gatilho Visual (A "Aba" que fica visível) */
+      .drawer-tab {
+        position: absolute;
+        top: 40%;
+        right: -30px;
+        width: 30px;
+        height: 120px;
+        background: #2c3e50;
+        color: white;
+        border-radius: 0 8px 8px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .drawer-tab span {
+        transform: rotate(-90deg);
+        letter-spacing: 2px;
+        font-weight: bold;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .trip-list-drawer:hover {
+        left: 0;
+      }
+
+      .drawer-header {
+        background: #2c3e50;
+        color: white;
+        padding: 20px;
+        font-weight: bold;
+      }
+      .drawer-content {
+        padding: 10px;
+        overflow-y: auto;
+        flex-grow: 1;
+      }
+
+      .trip-item-card {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .trip-item-card:hover {
+        background: #eef2f5;
+        border-color: #3498db;
+      }
+      .trip-id-text {
+        font-size: 11px;
+        color: #7f8c8d;
+        word-break: break-all;
+        margin-bottom: 5px;
+      }
+      .trip-date-text {
+        font-size: 13px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+      }
+      .trip-status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        color: white;
+      }
     </style>
   </head>
   <body>
@@ -329,6 +420,18 @@
       <div class="modal-content">
         <button class="btn-fechar-modal" id="btnFecharModal">✖</button>
         <div id="modal-chart-container"></div>
+      </div>
+    </div>
+
+    <div class="trip-list-drawer">
+      <div class="drawer-tab">
+        <span>⬅ HISTÓRICO</span>
+      </div>
+      <div class="drawer-header">Últimas Viagens</div>
+      <div class="drawer-content" id="lista-viagens-container">
+        <div style="text-align: center; color: #7f8c8d; margin-top: 20px">
+          ⏳ Carregando histórico...
+        </div>
       </div>
     </div>
 
