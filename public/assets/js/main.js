@@ -260,7 +260,7 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
 
   instanciaDoGrafico.setOption({
     tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
-    grid: { left: "3%", right: "15%", bottom: "10%", top: "2%", containLabel: true },
+    grid: { left: "3%", right: "15%", bottom: "12%", top: "2%", containLabel: true },
     legend: {
       data: ["Máxima", "Média", "Mínima"],
       orient: "vertical",
@@ -269,9 +269,9 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
       textStyle: { fontSize: 11 }
     },
 
-    dataZoom: [{ type: "inside" }, { type: "slider", bottom: 5 }],
+    dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8 }],
     xAxis: { type: "category", boundaryGap: false, data: eixoX, axisLabel: { fontSize: 10 } },
-    yAxis: { type: "value", scale: true, name: "Truque_A", axisLabel: { fontSize: 10 } },
+    yAxis: { type: "value", scale: true, name: "", axisLabel: { fontSize: 10 } },
     series: [
       { name: "Máxima", type: "line", data: eixoY_Max, itemStyle: { color: "#e74c3c" }, showSymbol: false },
       { name: "Média", type: "line", data: eixoY_Avg, itemStyle: { color: "#f1c40f" }, lineStyle: { type: "dashed", width: 2 }, showSymbol: false },
