@@ -471,66 +471,83 @@
       };
       legend.addTo(map);
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const idDaUrl = urlParams.get("id");
-      if (idDaUrl) {
-        document.getElementById("batchId").value = idDaUrl;
-        carregarMapa(idDaUrl);
-      }
+      // ==========================================
+      // 2. INICIALIZAÇÃO INTELIGENTE (AUTO-LOAD E HISTÓRICO)
+      // ==========================================
 
+      fetch("https://trips.svxdigital.com/api/trips")
+        .then((res) => res.json())
+        .then((trips) => {
+          renderizarListaNaGaveta(trips);
+
+          const urlParams = new URLSearchParams(window.location.search);
+          const idDaUrl = urlParams.get("id");
+
+          if (idDaUrl) {
+            document.getElementById("batchId").value = idDaUrl;
+            carregarMapa(idDaUrl);
+          } else if (trips.length > 0) {
+            const ultimaViagem = trips[0].batch_id;
+            document.getElementById("batchId").value = ultimaViagem;
+            window.history.replaceState({}, "", `?id=${ultimaViagem}`);
+            carregarMapa(ultimaViagem);
+          }
+        })
+        .catch((err) => console.error("Erro ao carregar histórico:", err));
+
+      // ==========================================
+      // BUSCA MANUAL (Para viagens arquivadas que não estão na gaveta)
+      // ==========================================
       document.getElementById("btnBuscar").addEventListener("click", () => {
         const batchId = document.getElementById("batchId").value.trim();
         if (batchId) {
+          // Atualiza a URL e vai direto no banco de dados buscar qualquer ID!
           window.history.pushState({}, "", `?id=${batchId}`);
           carregarMapa(batchId);
         }
       });
 
-      function carregarMapa(batchId) {
-        fecharBottomChart();
-        fetch(`https://trips.svxdigital.com/api/map/${batchId}`)
-          .then((res) =>
-            res.ok ? res.json() : Promise.reject("Viagem não encontrada."),
-          )
-          .then((trechos) => {
-            polylines_desenhadas.clearLayers();
-            let bounds = L.latLngBounds();
+      // Permite buscar apertando "Enter" no teclado
+      document.getElementById("batchId").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") document.getElementById("btnBuscar").click();
+      });
 
-            todasCoordenadasViagem = [];
+      // ==========================================
+      // RENDERIZAR GAVETA (Layout dos Cards)
+      // ==========================================
+      function renderizarListaNaGaveta(trips) {
+        const container = document.getElementById("lista-viagens-container");
+        container.innerHTML = "";
 
-            trechos.forEach((trecho) => {
-              const coords = trecho.geo_points.map((p) => [p.lat, p.lng]);
+        trips.forEach((trip) => {
+          const timestamp =
+            trip.started_at > 9999999999
+              ? trip.started_at
+              : trip.started_at * 1000;
+          const dataFormatada = new Date(timestamp).toLocaleString("pt-BR");
 
-              if (trecho.geo_points) {
-                todasCoordenadasViagem.push(...trecho.geo_points);
-              }
+          let corBadge = "#95a5a6";
+          if (trip.trip_status === "CONSOLIDATED") corBadge = "#27ae60";
+          if (trip.trip_status === "FINISH") corBadge = "#f39c12";
+          if (trip.trip_status === "RUNNING") corBadge = "#3498db";
 
-              const isCritical = trecho.is_critical;
-              const linha = L.polyline(coords, {
-                color: isCritical ? "#e74c3c" : "#3498db",
-                weight: isCritical ? 6 : 4,
-                opacity: 0.9,
-                cursor: isCritical ? "pointer" : "default",
-              });
+          const card = document.createElement("div");
+          card.className = "trip-item-card";
+          card.innerHTML = `
+                  <div class="trip-date-text">📅 ${dataFormatada}</div>
+                  <div class="trip-id-text">${trip.batch_id}</div>
+                  <div class="trip-status-badge" style="background-color: ${corBadge};">${trip.trip_status}</div>
+              `;
 
-              if (isCritical) {
-                linha.bindTooltip(
-                  "⚠️ Trecho Crítico<br>Clique para abrir o Modal de Análise",
-                );
-                linha.on("click", () =>
-                  abrirModalTrecho(batchId, trecho.parquet_ref),
-                );
-              }
-              polylines_desenhadas.addLayer(linha);
-              bounds.extend(linha.getBounds());
-            });
+          // O clique na gaveta funciona exatamente como a busca manual
+          card.onclick = () => {
+            document.getElementById("batchId").value = trip.batch_id;
+            window.history.pushState({}, "", `?id=${trip.batch_id}`);
+            carregarMapa(trip.batch_id);
+          };
 
-            todasCoordenadasViagem.sort((a, b) => a.t - b.t);
-
-            if (trechos.length > 0)
-              map.fitBounds(bounds, { padding: [30, 30] });
-          })
-          .catch((err) => alert(err));
+          container.appendChild(card);
+        });
       }
 
       // ==========================================
