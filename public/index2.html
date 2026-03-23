@@ -714,25 +714,46 @@
               // --------------------------------------------------
               // DICA: Substitua "trecho.avg_speed" pela variável real do seu banco de dados.
               // Como não sei se ela já existe, usei Math.random para você ver funcionando.
-              const velocidadeKmH = calcularVelocidadeTrecho(trecho.geo_points);
-
-              let corVelocidade = "#"; // Vermelho (Lento: < 20 km/h)
-              if (velocidadeKmH >= 5 && velocidadeKmH <= 25)
-                corVelocidade = "#27ae60";
-              if (velocidadeKmH >= 25 && velocidadeKmH <= 50)
-                corVelocidade = "#f39c12";
-              if (velocidadeKmH > 50) corVelocidade = "#c0392b"; // Vermelho (Rápido)
-
-              const linhaVelocidade = L.polyline(coords, {
-                color: corVelocidade,
-                weight: 5,
-                opacity: 0.8,
-              });
-
-              linhaVelocidade.bindTooltip(
-                `🚄 Velocidade Média: ${velocidadeKmH.toFixed(1)} km/h`,
+              const velocidades = calcularVelocidadesSuavizadas(
+                trecho.geo_points,
               );
-              layerVelocidade.addLayer(linhaVelocidade);
+
+              let coordsSegmentoAtual = [];
+              let corAtual = null;
+
+              for (let i = 0; i < trecho.geo_points.length; i++) {
+                const pt = trecho.geo_points[i];
+                const vel = velocidades[i];
+
+                let corDoPonto = "#033eff"; // Azul (< 5 km/h)
+                if (vel >= 5 && vel < 25) corDoPonto = "#27ae60"; // Verde
+                if (vel >= 25 && vel < 50) corDoPonto = "#f39c12"; // Laranja
+                if (vel > 50) corDoPonto = "#c0392b"; // Vermelho
+
+                if (corDoPonto !== corAtual && coordsSegmentoAtual.length > 0) {
+                  const linhaVel = L.polyline(coordsSegmentoAtual, {
+                    color: corAtual,
+                    weight: 5,
+                    opacity: 0.8,
+                  });
+                  layerVelocidade.addLayer(linhaVel);
+                  coordsSegmentoAtual = [
+                    coordsSegmentoAtual[coordsSegmentoAtual.length - 1],
+                  ];
+                }
+
+                coordsSegmentoAtual.push([pt.lat, pt.lng]);
+                corAtual = corDoPonto;
+              }
+
+              if (coordsSegmentoAtual.length > 1) {
+                const linhaVel = L.polyline(coordsSegmentoAtual, {
+                  color: corAtual,
+                  weight: 5,
+                  opacity: 0.8,
+                });
+                layerVelocidade.addLayer(linhaVel);
+              }
 
               bounds.extend(linhaEstrutural.getBounds());
             });
@@ -1073,6 +1094,7 @@
       // ==========================================
       // 10. MOTORES MATEMÁTICOS (FÍSICA E GPS)
       // ==========================================
+
       function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
         const R = 6371;
         const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -1087,28 +1109,50 @@
         return R * c;
       }
 
-      function calcularVelocidadeTrecho(pontosDeGPS) {
-        if (!pontosDeGPS || pontosDeGPS.length < 2) return 0;
+      function calcularVelocidadesSuavizadas(pontosDeGPS) {
+        if (!pontosDeGPS || pontosDeGPS.length < 2) return [];
 
-        let distanciaTotalKm = 0;
+        const velocidadesBrutas = [0];
 
         for (let i = 1; i < pontosDeGPS.length; i++) {
-          distanciaTotalKm += calcularDistanciaHaversine(
-            pontosDeGPS[i - 1].lat,
-            pontosDeGPS[i - 1].lng,
-            pontosDeGPS[i].lat,
-            pontosDeGPS[i].lng,
+          const pAtual = pontosDeGPS[i];
+          const pAnt = pontosDeGPS[i - 1];
+
+          const distKm = calcularDistanciaHaversine(
+            pAnt.lat,
+            pAnt.lng,
+            pAtual.lat,
+            pAtual.lng,
           );
+          const tempoSegundos = pAtual.t - pAnt.t;
+
+          if (tempoSegundos > 0) {
+            let velKmH = distKm / (tempoSegundos / 3600);
+            velocidadesBrutas.push(Math.min(velKmH, 120));
+          } else {
+            velocidadesBrutas.push(velocidadesBrutas[i - 1]);
+          }
         }
 
-        const tempoSegundos =
-          pontosDeGPS[pontosDeGPS.length - 1].t - pontosDeGPS[0].t;
+        const windowSize = 10;
+        const halfWindow = Math.floor(windowSize / 2);
+        const velocidadesSuavizadas = [];
 
-        if (tempoSegundos <= 0) return 0;
+        for (let i = 0; i < velocidadesBrutas.length; i++) {
+          let soma = 0;
+          let contagem = 0;
+          for (
+            let j = Math.max(0, i - halfWindow);
+            j <= Math.min(velocidadesBrutas.length - 1, i + halfWindow);
+            j++
+          ) {
+            soma += velocidadesBrutas[j];
+            contagem++;
+          }
+          velocidadesSuavizadas.push(soma / contagem);
+        }
 
-        const tempoHoras = tempoSegundos / 3600;
-
-        return distanciaTotalKm / tempoHoras;
+        return velocidadesSuavizadas;
       }
     </script>
   </body>
