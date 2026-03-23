@@ -464,23 +464,6 @@
               dataResponse,
               `Análise Detalhada do Trecho: ${parquetRef}`,
             );
-            bottomChart.on("updateAxisPointer", function (event) {
-              const xAxisInfo = event.axesInfo[0];
-              if (xAxisInfo) {
-                const index = xAxisInfo.value;
-                const pontoMatematico = dataResponse.points[index];
-
-                if (pontoMatematico && pontoMatematico.t) {
-                  const coordGPS = buscarCoordenadaPorTempo(pontoMatematico.t);
-
-                  if (coordGPS && coordGPS.lat && coordGPS.lng) {
-                    cursorMarker.setLatLng([coordGPS.lat, coordGPS.lng]);
-                    if (!map.hasLayer(cursorMarker)) cursorMarker.addTo(map);
-                  }
-                }
-              }
-            });
-
             bottomChart.on("globalout", function () {
               if (map.hasLayer(cursorMarker)) map.removeLayer(cursorMarker);
             });
@@ -571,7 +554,7 @@
         .addEventListener("click", fecharBottomChart);
 
       // ==========================================
-      // 5. FUNÇÃO REUTILIZÁVEL (Evita código duplicado no ECharts)
+      // 5. FUNÇÃO REUTILIZÁVEL (GRÁFICOS + MAPA SINCRONIZADO)
       // ==========================================
       function renderizarGraficoEcharts(
         instanciaDoGrafico,
@@ -583,9 +566,9 @@
         const eixoX = pointsData.map((i) =>
           new Date(i.t * 1000).toLocaleTimeString("pt-BR"),
         );
-        const eixoY_Max = pointsData.map((i) => i.max);
-        const eixoY_Min = pointsData.map((i) => i.min);
-        const eixoY_Avg = pointsData.map((i) => i.avg);
+        const eixoY_Max = pointsData.map((i) => i.max_strain);
+        const eixoY_Min = pointsData.map((i) => i.min_strain);
+        const eixoY_Avg = pointsData.map((i) => i.avg_strain);
 
         instanciaDoGrafico.setOption({
           title: {
@@ -695,7 +678,38 @@
             },
           ],
         });
+
         instanciaDoGrafico.resize();
+
+        // ==========================================
+        // A MÁGICA DA BOLINHA (Agora Genérica!)
+        // ==========================================
+
+        // Remove os ouvintes antigos para evitar duplicação em cliques rápidos
+        instanciaDoGrafico.off("updateAxisPointer");
+        instanciaDoGrafico.off("globalout");
+
+        // Usa 'instanciaDoGrafico' em vez de 'bottomChart' ou 'modalChart'
+        instanciaDoGrafico.on("updateAxisPointer", function (event) {
+          const xAxisInfo = event.axesInfo[0];
+          if (xAxisInfo) {
+            const index = xAxisInfo.value;
+            const pontoMatematico = dataResponse.points[index];
+
+            if (pontoMatematico && pontoMatematico.t) {
+              const coordGPS = buscarCoordenadaPorTempo(pontoMatematico.t);
+
+              if (coordGPS && coordGPS.lat && coordGPS.lng) {
+                cursorMarker.setLatLng([coordGPS.lat, coordGPS.lng]);
+                if (!map.hasLayer(cursorMarker)) cursorMarker.addTo(map);
+              }
+            }
+          }
+        });
+
+        instanciaDoGrafico.on("globalout", function () {
+          if (map.hasLayer(cursorMarker)) map.removeLayer(cursorMarker);
+        });
       }
 
       window.addEventListener("resize", () => {
