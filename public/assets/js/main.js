@@ -61,25 +61,50 @@ async function inicializarPainel() {
 }
 inicializarPainel();
 
+// ==========================================
+// 3. RENDERIZAÇÃO DA GAVETA
+// ==========================================
 function renderizarListaNaGaveta(trips) {
   const container = document.getElementById("lista-viagens-container");
   container.innerHTML = "";
 
   trips.forEach((trip) => {
-    const timestamp = trip.started_at > 9999999999 ? trip.started_at : trip.started_at * 1000;
-    const dataFormatada = new Date(timestamp).toLocaleString("pt-BR");
+    const statusOperacional = trip.status || trip.trip_status || "DESCONHECIDO";
+    const datalogger = trip.datalogger_id || "DL Desconhecido";
+    const cidadeOrigem = trip.city_start || "Origem Indisponível";
+    const cidadeDestino = trip.city_end || trip.city_current || "Destino Indisponível";
 
+    const timestamp = trip.started_at > 9999999999 ? trip.started_at : trip.started_at * 1000;
+    const dataFormatada = new Date(timestamp).toLocaleString("pt-BR", {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    // Cores do Status
     let corBadge = "#95a5a6";
-    if (trip.trip_status === "CONSOLIDATED") corBadge = "#27ae60";
-    if (trip.trip_status === "FINISH") corBadge = "#f39c12";
-    if (trip.trip_status === "PENDING") corBadge = "#3498db";
+    if (statusOperacional === "CONSOLIDATED") corBadge = "#27ae60";
+    if (statusOperacional === "FINISH") corBadge = "#f39c12";
+    if (statusOperacional === "PENDING" || statusOperacional === "RUNNING") corBadge = "#3498db";
 
     const card = document.createElement("div");
     card.className = "trip-item-card";
+
+    // ✨ NOVO LAYOUT DO CARD: Mais inteligente e com os dados do DynamoDB
     card.innerHTML = `
-            <div class="trip-date-text">📅 ${dataFormatada}</div>
-            <div class="trip-id-text">${trip.batch_id}</div>
-            <div class="trip-status-badge" style="background-color: ${corBadge};">${trip.trip_status}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="font-size: 11px; font-weight: bold; color: #2c3e50;">📅 ${dataFormatada}</div>
+                <div class="trip-status-badge" style="background-color: ${corBadge}; font-size: 9px; padding: 2px 6px;">${statusOperacional}</div>
+            </div>
+            
+            <div style="font-size: 13px; font-weight: bold; color: #2c3e50; margin-bottom: 6px;">
+                📟 ${datalogger}
+            </div>
+            
+            <div style="font-size: 11px; color: #7f8c8d; line-height: 1.5; margin-bottom: 8px; background: white; padding: 5px; border-radius: 4px; border: 1px dashed #ccc;">
+                <span style="color: #3498db;">📍</span> ${cidadeOrigem}<br>
+                <span style="color: #27ae60;">🏁</span> ${cidadeDestino}
+            </div>
+            
+            <div class="trip-id-text" style="font-size: 9px; margin: 0; opacity: 0.7;">ID: ${trip.batch_id}</div>
         `;
 
     card.addEventListener("click", () => {
@@ -93,6 +118,7 @@ function renderizarListaNaGaveta(trips) {
 
       carregarMapa(idAlvo);
     });
+
     container.appendChild(card);
   });
 }
