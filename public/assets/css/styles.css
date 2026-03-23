@@ -310,7 +310,7 @@
       /* O Gatilho Visual (A "Aba" que fica visível) */
       .drawer-tab {
         position: absolute;
-        top: 40%;
+        top: 80%;
         right: -30px;
         width: 30px;
         height: 120px;

@@ -386,7 +386,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
                 <div style="font-size: 14px; color: #2c3e50; font-weight: bold;">📟 ${datalogger}</div>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 10px; color: #7f8c8d; text-transform: uppercase; font-weight: bold;">Status DB</div>
+                <div style="font-size: 10px; color: #7f8c8d; text-transform: uppercase; text-align:right; font-weight: bold;">Status</div>
                 <div style="font-size: 11px; font-weight: bold; color: white; background: #34495e; padding: 2px 8px; border-radius: 10px; display: inline-block;">${statusOperacional}</div>
             </div>
         </div>
