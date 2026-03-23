@@ -802,10 +802,10 @@
                 const maxSegmento = Math.max(...velocidadesSegmentoAtual);
                 const minSegmento = Math.min(...velocidadesSegmentoAtual);
 
-                let descStatus = "Manobra / Parada";
-                if (corAtual === "#f39c12") descStatus = "Velocidade Reduzida";
-                if (corAtual === "#27ae60")
-                  descStatus = "Velocidade de Cruzeiro";
+                let descStatus = "Manobra";
+                if (corAtual === "#27ae60") descStatus = "Baixa";
+                if (corAtual === "#f39c12") descStatus = "Média";
+                if (corAtual === "#c0392b") descStatus = "Alta";
 
                 const linhaVel = L.polyline(coordsSegmentoAtual, {
                   color: corAtual,
