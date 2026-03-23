@@ -710,8 +710,9 @@
               layerEstrutural.addLayer(linhaEstrutural);
 
               // --------------------------------------------------
-              // CAMADA 2: Gradiente de Velocidade (Ponto a Ponto Suavizado)
+              // CAMADA 2: Gradiente de Velocidade (Com Min/Max/Avg)
               // --------------------------------------------------
+
               const velocidades = calcularVelocidadesSuavizadas(
                 trecho.geo_points,
               );
@@ -724,9 +725,10 @@
                 const pt = trecho.geo_points[i];
                 const vel = velocidades[i];
 
-                let corDoPonto = "#c0392b"; // Vermelho (< 20 km/h)
-                if (vel >= 20 && vel <= 50) corDoPonto = "#f39c12"; // Laranja
-                if (vel > 50) corDoPonto = "#27ae60"; // Verde
+                let corDoPonto = "#033eff";
+                if (vel > 5 && vel <= 25) corDoPonto = "#27ae60";
+                if (vel > 25 && vel <= 50) corDoPonto = "#f39c12";
+                if (vel > 50) corDoPonto = "#c0392b";
 
                 if (corDoPonto !== corAtual && coordsSegmentoAtual.length > 0) {
                   const somaVel = velocidadesSegmentoAtual.reduce(
@@ -735,12 +737,13 @@
                   );
                   const mediaSegmento =
                     somaVel / velocidadesSegmentoAtual.length;
+                  const maxSegmento = Math.max(...velocidadesSegmentoAtual);
+                  const minSegmento = Math.min(...velocidadesSegmentoAtual);
 
-                  let descStatus = "Manobra / Parada";
-                  if (corAtual === "#f39c12")
-                    descStatus = "Velocidade Reduzida";
-                  if (corAtual === "#27ae60")
-                    descStatus = "Velocidade de Cruzeiro";
+                  let descStatus = "Manobra";
+                  if (corAtual === "#27ae60") descStatus = "Baixa";
+                  if (corAtual === "#f39c12") descStatus = "Média";
+                  if (corAtual === "#c0392b") descStatus = "Alta";
 
                   const linhaVel = L.polyline(coordsSegmentoAtual, {
                     color: corAtual,
@@ -750,12 +753,14 @@
 
                   linhaVel.bindTooltip(
                     `
-                        <div style="font-size: 11px; line-height: 1.4;">
-                            <b style="color: ${corAtual}; text-transform: uppercase;">${descStatus}</b><br>
-                            Velocidade Média: <b>${mediaSegmento.toFixed(1)} km/h</b>
+                        <div style="font-size: 11px; line-height: 1.6; min-width: 150px;">
+                            <b style="color: ${corAtual}; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 3px; display: block; margin-bottom: 4px;">${descStatus}</b>
+                            <div style="display: flex; justify-content: space-between;"><span>Média:</span> <b>${mediaSegmento.toFixed(1)} km/h</b></div>
+                            <div style="display: flex; justify-content: space-between;"><span>Máxima:</span> <b style="color: #e74c3c;">${maxSegmento.toFixed(1)} km/h</b></div>
+                            <div style="display: flex; justify-content: space-between;"><span>Mínima:</span> <b style="color: #3498db;">${minSegmento.toFixed(1)} km/h</b></div>
                         </div>
                       `,
-                    { sticky: true, opacity: 0.9 },
+                    { sticky: true, opacity: 0.95 },
                   );
 
                   layerVelocidade.addLayer(linhaVel);
@@ -771,12 +776,15 @@
                 coordsSegmentoAtual.push([pt.lat, pt.lng]);
                 corAtual = corDoPonto;
               }
+
               if (coordsSegmentoAtual.length > 1) {
                 const somaVel = velocidadesSegmentoAtual.reduce(
                   (a, b) => a + b,
                   0,
                 );
                 const mediaSegmento = somaVel / velocidadesSegmentoAtual.length;
+                const maxSegmento = Math.max(...velocidadesSegmentoAtual);
+                const minSegmento = Math.min(...velocidadesSegmentoAtual);
 
                 let descStatus = "Manobra / Parada";
                 if (corAtual === "#f39c12") descStatus = "Velocidade Reduzida";
@@ -791,12 +799,14 @@
 
                 linhaVel.bindTooltip(
                   `
-                    <div style="font-size: 11px; line-height: 1.4;">
-                        <b style="color: ${corAtual}; text-transform: uppercase;">${descStatus}</b><br>
-                        Velocidade Média: <b>${mediaSegmento.toFixed(1)} km/h</b>
+                    <div style="font-size: 11px; line-height: 1.6; min-width: 150px;">
+                        <b style="color: ${corAtual}; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 3px; display: block; margin-bottom: 4px;">${descStatus}</b>
+                        <div style="display: flex; justify-content: space-between;"><span>Média:</span> <b>${mediaSegmento.toFixed(1)} km/h</b></div>
+                        <div style="display: flex; justify-content: space-between;"><span>Máxima:</span> <b style="color: #e74c3c;">${maxSegmento.toFixed(1)} km/h</b></div>
+                        <div style="display: flex; justify-content: space-between;"><span>Mínima:</span> <b style="color: #3498db;">${minSegmento.toFixed(1)} km/h</b></div>
                     </div>
                   `,
-                  { sticky: true, opacity: 0.9 },
+                  { sticky: true, opacity: 0.95 },
                 );
 
                 layerVelocidade.addLayer(linhaVel);
