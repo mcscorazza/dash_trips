@@ -2,7 +2,6 @@
 // js/main.js
 // ==========================================
 import { fetchListaDeViagens, fetchDadosDoMapa, fetchTrechoCritico, fetchViagemCompleta } from './services/api.js';
-import { fetchListaDeViagens, fetchDadosDoMapa, fetchTrechoCritico, fetchViagemCompleta } from './services/api.js';
 import { calcularVelocidadesSuavizadas, buscarCoordenadaPorTempo, calcularDistanciaHaversine } from './utils/math.js';
 
 // 1. ESTADO GLOBAL E INICIALIZAÇÃO
