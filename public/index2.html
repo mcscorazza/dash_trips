@@ -665,33 +665,29 @@
       });
 
       // ==========================================
-      // 5. CARREGAMENTO DO MAPA E CAMADAS
+      // 5. CARREGAMENTO DO MAPA E TRAJETOS
       // ==========================================
       function carregarMapa(batchId) {
-        fecharBottomChart();
+        fecharBottomChart(); // Esconde a visão Macro ao trocar de viagem
 
         fetch(`https://trips.svxdigital.com/api/map/${batchId}`)
           .then((res) =>
             res.ok ? res.json() : Promise.reject("Viagem não encontrada."),
           )
           .then((trechos) => {
-            // Limpa as duas camadas ao trocar de viagem
-            layerEstrutural.clearLayers();
-            layerVelocidade.clearLayers();
-
+            polylines_desenhadas.clearLayers();
             let bounds = L.latLngBounds();
             todasCoordenadasViagem = [];
 
             trechos.forEach((trecho) => {
               const coords = trecho.geo_points.map((p) => [p.lat, p.lng]);
-              if (trecho.geo_points)
-                todasCoordenadasViagem.push(...trecho.geo_points);
 
-              // --------------------------------------------------
-              // CAMADA 1: Tensão Estrutural (A original)
-              // --------------------------------------------------
+              if (trecho.geo_points) {
+                todasCoordenadasViagem.push(...trecho.geo_points);
+              }
+
               const isCritical = trecho.is_critical;
-              const linhaEstrutural = L.polyline(coords, {
+              const linha = L.polyline(coords, {
                 color: isCritical ? "#e74c3c" : "#3498db",
                 weight: isCritical ? 6 : 4,
                 opacity: 0.9,
@@ -699,42 +695,15 @@
               });
 
               if (isCritical) {
-                linhaEstrutural.bindTooltip(
-                  "⚠️ Trecho Crítico<br>Clique para analisar",
+                linha.bindTooltip(
+                  "⚠️ Trecho Crítico<br>Clique para abrir o Modal de Análise",
                 );
-                linhaEstrutural.on("click", () =>
+                linha.on("click", () =>
                   abrirModalTrecho(batchId, trecho.parquet_ref),
                 );
               }
-              layerEstrutural.addLayer(linhaEstrutural);
-
-              // --------------------------------------------------
-              // CAMADA 2: Gradiente de Velocidade
-              // --------------------------------------------------
-              // DICA: Substitua "trecho.avg_speed" pela variável real do seu banco de dados.
-              // Como não sei se ela já existe, usei Math.random para você ver funcionando.
-              const velocidadeKmH =
-                trecho.avg_speed !== undefined
-                  ? trecho.avg_speed
-                  : Math.random() * 80;
-
-              let corVelocidade = "#c0392b"; // Vermelho (Lento: < 20 km/h)
-              if (velocidadeKmH >= 20 && velocidadeKmH <= 50)
-                corVelocidade = "#f39c12"; // Amarelo/Laranja (Médio)
-              if (velocidadeKmH > 50) corVelocidade = "#27ae60"; // Verde (Rápido)
-
-              const linhaVelocidade = L.polyline(coords, {
-                color: corVelocidade,
-                weight: 5,
-                opacity: 0.8,
-              });
-
-              linhaVelocidade.bindTooltip(
-                `🚄 Velocidade Média: ${velocidadeKmH.toFixed(1)} km/h`,
-              );
-              layerVelocidade.addLayer(linhaVelocidade);
-
-              bounds.extend(linhaEstrutural.getBounds());
+              polylines_desenhadas.addLayer(linha);
+              bounds.extend(linha.getBounds());
             });
 
             todasCoordenadasViagem.sort((a, b) => a.t - b.t);
@@ -743,23 +712,6 @@
           })
           .catch((err) => alert(err));
       }
-
-      // --------------------------------------------------
-      // OUVINTES DOS BOTÕES SWITCH (Liga/Desliga Layers)
-      // --------------------------------------------------
-      document
-        .getElementById("toggleLayerCritical")
-        .addEventListener("change", (e) => {
-          if (e.target.checked) map.addLayer(layerEstrutural);
-          else map.removeLayer(layerEstrutural);
-        });
-
-      document
-        .getElementById("toggleLayerSpeed")
-        .addEventListener("change", (e) => {
-          if (e.target.checked) map.addLayer(layerVelocidade);
-          else map.removeLayer(layerVelocidade);
-        });
 
       // ==========================================
       // 6. MODAL (VISÃO MICRO - TRECHO CRÍTICO)
