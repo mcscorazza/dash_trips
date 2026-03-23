@@ -260,7 +260,7 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
 
   instanciaDoGrafico.setOption({
     tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
-    grid: { left: "3%", right: "15%", bottom: "12%", top: "2%", containLabel: true },
+    grid: { left: "5%", right: "5%", bottom: "12%", top: "2%", containLabel: true },
     legend: {
       data: ["Máxima", "Média", "Mínima"],
       orient: "vertical",
