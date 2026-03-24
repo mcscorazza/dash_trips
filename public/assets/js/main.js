@@ -4,7 +4,9 @@
 import { fetchListaDeViagens, fetchDadosDoMapa, fetchTrechoCritico, fetchViagemCompleta } from './services/api.js';
 import { calcularVelocidadesSuavizadas, buscarCoordenadaPorTempo, calcularDistanciaHaversine } from './utils/math.js';
 
+// ==========================================
 // 1. ESTADO GLOBAL E INICIALIZAÇÃO
+// ==========================================
 const map = L.map("map").setView([-14.235, -51.925], 4);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
@@ -36,18 +38,16 @@ legend.onAdd = () => {
 };
 legend.addTo(map);
 
+// ==========================================
 // 2. AUTO-LOAD E GAVETA
+// ==========================================
 async function inicializarPainel() {
   try {
     const trips = await fetchListaDeViagens();
-
     viagensDynamo = trips;
-
     renderizarListaNaGaveta(trips);
-
     const urlParams = new URLSearchParams(window.location.search);
     const idDaUrl = urlParams.get("id");
-
     if (idDaUrl) {
       document.getElementById("batchId").value = idDaUrl;
       carregarMapa(idDaUrl);
@@ -64,32 +64,26 @@ async function inicializarPainel() {
 inicializarPainel();
 
 // ==========================================
-// 3. RENDERIZAÇÃO DA GAVETA
+// 4. RENDERIZAÇÃO DA GAVETA
 // ==========================================
 function renderizarListaNaGaveta(trips) {
   const container = document.getElementById("lista-viagens-container");
   container.innerHTML = "";
-
   trips.forEach((trip) => {
     const statusOperacional = trip.status || trip.trip_status || "DESCONHECIDO";
     const datalogger = trip.datalogger_id || "DL Desconhecido";
     const cidadeOrigem = trip.city_start || "Origem Indisponível";
     const cidadeDestino = trip.city_end || trip.city_current || "Destino Indisponível";
-
     const timestamp = trip.started_at > 9999999999 ? trip.started_at : trip.started_at * 1000;
     const dataFormatada = new Date(timestamp).toLocaleString("pt-BR", {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-
-    // Cores do Status
     let corBadge = "#95a5a6";
     if (statusOperacional === "CONSOLIDATED") corBadge = "#27ae60";
     if (statusOperacional === "FINISH") corBadge = "#f39c12";
-    if (statusOperacional === "PENDING" || statusOperacional === "RUNNING") corBadge = "#3498db";
-
+    if (statusOperacional === "PENDING") corBadge = "#3498db";
     const card = document.createElement("div");
     card.className = "trip-item-card";
-
     card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <div style="font-size: 11px; font-weight: bold; color: #2c3e50;">📅 ${dataFormatada}</div>
@@ -107,24 +101,22 @@ function renderizarListaNaGaveta(trips) {
             
             <div class="trip-id-text" style="font-size: 9px; margin: 0; opacity: 0.7;">ID: ${trip.batch_id}</div>
         `;
-
     card.addEventListener("click", () => {
       const idAlvo = trip.batch_id;
       document.getElementById("batchId").value = idAlvo;
       window.history.pushState({}, "", `?id=${idAlvo}`);
-
       const gaveta = document.querySelector(".trip-list-drawer");
       gaveta.style.left = "-320px";
       setTimeout(() => { gaveta.style.left = ""; }, 500);
-
       carregarMapa(idAlvo);
     });
-
     container.appendChild(card);
   });
 }
 
-// 3. CONTROLES DA UI E EVENTOS
+// ==========================================
+// 5. CONTROLES DA UI E EVENTOS
+// ==========================================
 document.getElementById("btnBuscar").addEventListener("click", () => {
   const batchId = document.getElementById("batchId").value.trim();
   if (batchId) { window.history.pushState({}, "", `?id=${batchId}`); carregarMapa(batchId); }
@@ -144,7 +136,9 @@ document.getElementById("toggleLayerSpeed").addEventListener("change", (e) => {
   else map.removeLayer(layerVelocidade);
 });
 
-// 4. CARREGAMENTO DO MAPA
+// ==========================================
+// 6. CARREGAMENTO DO MAPA
+// ==========================================
 async function carregarMapa(batchId) {
   fecharBottomChart();
   try {
@@ -153,12 +147,9 @@ async function carregarMapa(batchId) {
     layerVelocidade.clearLayers();
     let bounds = L.latLngBounds();
     todasCoordenadasViagem = [];
-
     trechos.forEach((trecho) => {
       const coords = trecho.geo_points.map((p) => [p.lat, p.lng]);
       if (trecho.geo_points) todasCoordenadasViagem.push(...trecho.geo_points);
-
-      // Camada Estrutural
       const isCritical = trecho.is_critical;
       const linhaEstrutural = L.polyline(coords, {
         color: isCritical ? "#e74c3c" : "#3498db", weight: isCritical ? 6 : 4, opacity: 0.9, cursor: isCritical ? "pointer" : "default",
@@ -169,11 +160,8 @@ async function carregarMapa(batchId) {
         linhaEstrutural.on("click", () => abrirModalTrecho(batchId, trecho.parquet_ref));
       }
       layerEstrutural.addLayer(linhaEstrutural);
-
-      // Camada Velocidade
       const velocidades = calcularVelocidadesSuavizadas(trecho.geo_points);
       let coordsSeg = [], velsSeg = [], corAtual = null;
-
       for (let i = 0; i < trecho.geo_points.length; i++) {
         const pt = trecho.geo_points[i];
         const vel = velocidades[i];
@@ -181,7 +169,6 @@ async function carregarMapa(batchId) {
         if (vel > 5 && vel <= 25) corPt = "#27ae60";
         if (vel > 25 && vel <= 50) corPt = "#f39c12";
         if (vel > 50) corPt = "#c0392b";
-
         if (corPt !== corAtual && coordsSeg.length > 0) {
           desenharSegmentoVelocidade(coordsSeg, velsSeg, corAtual);
           coordsSeg = [coordsSeg[coordsSeg.length - 1]];
@@ -193,10 +180,8 @@ async function carregarMapa(batchId) {
         corAtual = corPt;
       }
       if (coordsSeg.length > 1) desenharSegmentoVelocidade(coordsSeg, velsSeg, corAtual);
-
       bounds.extend(linhaEstrutural.getBounds());
     });
-
     todasCoordenadasViagem.sort((a, b) => a.t - b.t);
     if (trechos.length > 0) {
       ultimaViagemBounds = bounds;
@@ -228,15 +213,15 @@ function desenharSegmentoVelocidade(coords, vels, cor) {
   layerVelocidade.addLayer(linha);
 }
 
-// 5. MODAL E GRÁFICO INFERIOR
+// ==========================================
+// 7. MODAL E GRÁFICO INFERIOR
+// ==========================================
 async function abrirModalTrecho(batchId, parquetRef) {
   if (currentModalFetch) currentModalFetch.abort();
   currentModalFetch = new AbortController();
-
   modalOverlay.classList.add("active");
   if (modalChart) { echarts.dispose(modalChartDom); modalChart = null; }
   modalChartDom.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #e74c3c; font-weight: bold;">⏳ Carregando Trecho Crítico...</div>`;
-
   const tempoDaAnimacao = new Promise((resolve) => setTimeout(resolve, 300));
   try {
     const [dataResponse] = await Promise.all([fetchTrechoCritico(batchId, parquetRef, currentModalFetch.signal), tempoDaAnimacao]);
@@ -258,20 +243,15 @@ document.getElementById("btnFecharModal").addEventListener("click", () => {
 document.getElementById("btnVerGraficoCompleto").addEventListener("click", async () => {
   const batchId = document.getElementById("batchId").value.trim();
   if (!batchId) return alert("Busque uma viagem primeiro.");
-
   if (currentBottomFetch) currentBottomFetch.abort();
   currentBottomFetch = new AbortController();
-
   workspace.classList.add("split-view");
-
   setTimeout(() => {
     map.invalidateSize();
     if (ultimaViagemBounds) map.fitBounds(ultimaViagemBounds, { padding: [30, 30] });
   }, 300);
-
   if (bottomChart) { echarts.dispose(bottomChartDom); bottomChart = null; }
   bottomChartDom.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #27ae60; font-weight: bold; font-size: 15px;">⏳ Consolidando Viagem Completa... Isso pode levar alguns segundos.</div>`;
-
   const tempoDaAnimacao = new Promise((resolve) => setTimeout(resolve, 350));
   try {
     const [dataResponse] = await Promise.all([fetchViagemCompleta(batchId, currentBottomFetch.signal), tempoDaAnimacao]);
@@ -287,16 +267,13 @@ function fecharBottomChart() {
   if (currentBottomFetch) currentBottomFetch.abort();
   workspace.classList.remove("split-view");
   if (bottomChart) { echarts.dispose(bottomChartDom); bottomChart = null; }
-
   bottomChartDom.innerHTML = "";
-
   setTimeout(() => {
     map.invalidateSize();
     if (ultimaViagemBounds) map.fitBounds(ultimaViagemBounds, { padding: [30, 30] });
   }, 300);
 }
 document.getElementById("btnFecharBottom").addEventListener("click", fecharBottomChart);
-
 function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
   const pointsData = dataResponse.points;
   const globalAvg = Math.abs(dataResponse.global_average);
@@ -353,7 +330,6 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
       const index = xAxisInfo.value;
       const pontoMatematico = dataResponse.points[index];
       if (pontoMatematico && pontoMatematico.t) {
-        // Chama a função matemática passando o nosso estado global de coordenadas!
         const coordGPS = buscarCoordenadaPorTempo(todasCoordenadasViagem, pontoMatematico.t);
         if (coordGPS && coordGPS.lat && coordGPS.lng) {
           cursorMarker.setLatLng([coordGPS.lat, coordGPS.lng]);
@@ -362,7 +338,6 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
       }
     }
   });
-
   instanciaDoGrafico.on("globalout", function () {
     if (map.hasLayer(cursorMarker)) map.removeLayer(cursorMarker);
   });
@@ -375,7 +350,7 @@ window.addEventListener("resize", () => {
 });
 
 // ==========================================
-// 10. ATUALIZAÇÃO DINÂMICA DA SIDEBAR
+// 8. ATUALIZAÇÃO DINÂMICA DA SIDEBAR
 // ==========================================
 function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
   const container = document.getElementById("trip-details");
@@ -384,25 +359,16 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
     container.innerHTML = `<div class="info-value" style="color: #e74c3c;">Dados da viagem incompletos.</div>`;
     return;
   }
-
-  // 1. BUSCA O CONTEXTO NO DYNAMODB
-  // Procura na nossa memória a viagem que tem esse exato batch_id
   const tripData = viagensDynamo.find(t => t.batch_id === batchId) || {};
-
-  // Como o campo pode vir como 'status' ou 'trip_status' dependendo do seu backend:
   const statusOperacional = tripData.status || tripData.trip_status || "DESCONHECIDO";
   const datalogger = tripData.datalogger_id || "N/A";
   const cidadeOrigem = tripData.city_start || "Origem Indisponível";
   const cidadeDestino = tripData.city_end || tripData.city_current || "Destino Indisponível";
-
-  // 2. CÁLCULO DE TEMPO (DURAÇÃO FÍSICA)
   const tInicio = coordenadasGlobais[0].t;
   const tFim = coordenadasGlobais[coordenadasGlobais.length - 1].t;
   const duracaoSegundos = tFim - tInicio;
   const horas = Math.floor(duracaoSegundos / 3600);
   const minutos = Math.floor((duracaoSegundos % 3600) / 60);
-
-  // 3. CÁLCULO DE DISTÂNCIA E PONTOS LIDOS
   const totalPontos = coordenadasGlobais.length.toLocaleString('pt-BR');
   let distanciaKm = 0;
   for (let i = 1; i < coordenadasGlobais.length; i++) {
@@ -411,13 +377,9 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
       coordenadasGlobais[i].lat, coordenadasGlobais[i].lng
     );
   }
-
-  // 4. ANÁLISE DE RISCO (PostgreSQL)
   const qtdCriticos = trechos.filter(t => t.is_critical).length;
   const statusTexto = qtdCriticos > 0 ? `⚠️ Alertas Críticos (${qtdCriticos})` : `✅ Operação Normal`;
   const statusCor = qtdCriticos > 0 ? "#e74c3c" : "#27ae60";
-
-  // 5. INJEÇÃO NO HTML (O Novo Layout do Cockpit)
   container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #eee;">
             <div>
