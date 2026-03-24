@@ -13,6 +13,8 @@ let layerEstrutural = L.layerGroup().addTo(map);
 let layerVelocidade = L.layerGroup();
 let todasCoordenadasViagem = [];
 let viagensDynamo = [];
+let ultimaViagemBounds = null;
+
 let cursorMarker = L.circleMarker([0, 0], { radius: 6, color: "white", weight: 2, fillColor: "#e74c3c", fillOpacity: 1, zIndexOffset: 1000 });
 
 const workspace = document.getElementById("workspace");
@@ -88,7 +90,6 @@ function renderizarListaNaGaveta(trips) {
     const card = document.createElement("div");
     card.className = "trip-item-card";
 
-    // ✨ NOVO LAYOUT DO CARD: Mais inteligente e com os dados do DynamoDB
     card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <div style="font-size: 11px; font-weight: bold; color: #2c3e50;">📅 ${dataFormatada}</div>
@@ -197,10 +198,11 @@ async function carregarMapa(batchId) {
     });
 
     todasCoordenadasViagem.sort((a, b) => a.t - b.t);
-    if (trechos.length > 0) map.fitBounds(bounds, { padding: [30, 30] });
-
-    atualizarResumoViagem(batchId, trechos, todasCoordenadasViagem);
-
+    if (trechos.length > 0) {
+      ultimaViagemBounds = bounds;
+      map.fitBounds(bounds, { padding: [30, 30] });
+      atualizarResumoViagem(batchId, trechos, todasCoordenadasViagem);
+    }
   } catch (err) { alert(err); }
 }
 
@@ -261,6 +263,12 @@ document.getElementById("btnVerGraficoCompleto").addEventListener("click", async
   currentBottomFetch = new AbortController();
 
   workspace.classList.add("split-view");
+
+  setTimeout(() => {
+    map.invalidateSize();
+    if (ultimaViagemBounds) map.fitBounds(ultimaViagemBounds, { padding: [30, 30] });
+  }, 300);
+
   if (bottomChart) { echarts.dispose(bottomChartDom); bottomChart = null; }
   bottomChartDom.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #27ae60; font-weight: bold; font-size: 15px;">⏳ Consolidando Viagem Completa... Isso pode levar alguns segundos.</div>`;
 
@@ -279,8 +287,13 @@ function fecharBottomChart() {
   if (currentBottomFetch) currentBottomFetch.abort();
   workspace.classList.remove("split-view");
   if (bottomChart) { echarts.dispose(bottomChartDom); bottomChart = null; }
+
   bottomChartDom.innerHTML = "";
-  setTimeout(() => { map.invalidateSize(); }, 300);
+
+  setTimeout(() => {
+    map.invalidateSize();
+    if (ultimaViagemBounds) map.fitBounds(ultimaViagemBounds, { padding: [30, 30] });
+  }, 300);
 }
 document.getElementById("btnFecharBottom").addEventListener("click", fecharBottomChart);
 
