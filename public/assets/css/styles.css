@@ -198,12 +198,12 @@
 
       #workspace.split-view .upper-container {
         flex-grow: 0;
-        height: calc(40% - 10px);
+        height: calc(45% - 5px);
       }
 
       #workspace.split-view .chart-wrapper {
         flex-grow: 0;
-        height: calc(60% - 10px);
+        height: calc(50% - 5px);
         opacity: 1;
         padding: 30px 10px 10px 10px;
       }
