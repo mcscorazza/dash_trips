@@ -36,7 +36,21 @@ legend.onAdd = () => {
                      <span style="background: #e74c3c; width: 15px; height: 5px; display: inline-block;"></span> Crítico (Clique)`;
   return div;
 };
+
 legend.addTo(map);
+
+const legendVelocidade = L.control({ position: "bottomright" });
+legendVelocidade.onAdd = () => {
+  const div = L.DomUtil.create("div", "legenda");
+  div.innerHTML = `
+        <div style="margin-bottom: 3px;"><b>Velocidade</b></div>
+        <span style="color: #033eff; font-size: 14px;">■</span> 0 a 5 km/h<br>
+        <span style="color: #27ae60; font-size: 14px;">■</span> 5 a 25 km/h<br>
+        <span style="color: #f39c12; font-size: 14px;">■</span> 25 a 50 km/h<br>
+        <span style="color: #c0392b; font-size: 14px;">■</span> + 50 km/h
+    `;
+  return div;
+};
 
 // ==========================================
 // 2. AUTO-LOAD E GAVETA
@@ -137,8 +151,13 @@ document.getElementById("toggleLayerCritical").addEventListener("change", (e) =>
 });
 
 document.getElementById("toggleLayerSpeed").addEventListener("change", (e) => {
-  if (e.target.checked) map.addLayer(layerVelocidade);
-  else map.removeLayer(layerVelocidade);
+  if (e.target.checked) {
+    map.addLayer(layerVelocidade);
+    legendVelocidade.addTo(map);
+  } else {
+    map.removeLayer(layerVelocidade);
+    legendVelocidade.remove();
+  }
 });
 
 // ==========================================
