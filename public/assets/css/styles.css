@@ -198,7 +198,7 @@
 
       #workspace.split-view .upper-container {
         flex-grow: 0;
-        height: calc(45% - 5px);
+        height: calc(50% - 5px);
       }
 
       #workspace.split-view .chart-wrapper {
