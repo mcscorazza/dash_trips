@@ -127,8 +127,13 @@ document.getElementById("batchId").addEventListener("keypress", (e) => {
 });
 
 document.getElementById("toggleLayerCritical").addEventListener("change", (e) => {
-  if (e.target.checked) map.addLayer(layerEstrutural);
-  else map.removeLayer(layerEstrutural);
+  if (e.target.checked) {
+    map.addLayer(layerEstrutural);
+    legend.addTo(map);
+  } else {
+    map.removeLayer(layerEstrutural);
+    legend.remove();
+  }
 });
 
 document.getElementById("toggleLayerSpeed").addEventListener("change", (e) => {
