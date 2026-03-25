@@ -387,7 +387,8 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
   const statusOperacional = tripData.status || tripData.trip_status || "DESCONHECIDO";
   const datalogger = tripData.datalogger_id || "N/A";
   const cidadeOrigem = tripData.city_start || "Origem Indisponível";
-  const cidadeDestino = tripData.city_end || tripData.city_current || "Destino Indisponível";
+  const cidadeDestino = tripData.city_end
+  const cidadeAtual = tripData.city_current || "Cidade não Identificada"
   const tInicio = coordenadasGlobais[0].t;
   const tFim = coordenadasGlobais[coordenadasGlobais.length - 1].t;
   const duracaoSegundos = tFim - tInicio;
@@ -415,13 +416,14 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
                 <div style="font-size: 11px; font-weight: bold; color: white; background: #34495e; padding: 2px 8px; border-radius: 10px; display: inline-block;">${statusOperacional}</div>
             </div>
         </div>
-
         <div class="info-label">Trajeto (Origem ➔ Destino)</div>
         <div class="info-value" style="font-size: 12px; line-height: 1.5;">
-            <span style="color: #3498db;">📍</span> ${cidadeOrigem}<br>
-            <span style="color: #27ae60;">🏁</span> ${cidadeDestino}
+            <span style="color: #3498db;">📌</span> ${cidadeOrigem}<br>
+            ${statusOperacional === 'CONSOLIDATED'
+      ? `<span style="color: #27ae60;">✅</span> ${cidadeDestino}`
+      : `<span style="color: #f39c12;">🔄</span> ${cidadeAtual} <span style="font-size: 10px; color: #7f8c8d;">(em trânsito)</span>`
+    }
         </div>
-
         <div class="info-label">Diagnóstico de Tensão</div>
         <div class="info-value" style="color: ${statusCor}; font-weight: bold">${statusTexto}</div>
 
