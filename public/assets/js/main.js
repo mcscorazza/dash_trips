@@ -88,14 +88,14 @@ function renderizarListaNaGaveta(trips) {
     const datalogger = trip.datalogger_id || "DL Desconhecido";
     const cidadeOrigem = trip.city_start || "Origem Indisponível";
     const cidadeDestino = trip.city_end || trip.city_current || "Destino Indisponível";
+    const cidadeAtual = trip.city_current || "Cidade Indisponível"
     const timestamp = trip.started_at > 9999999999 ? trip.started_at : trip.started_at * 1000;
     const dataFormatada = new Date(timestamp).toLocaleString("pt-BR", {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
     let corBadge = "#95a5a6";
     if (statusOperacional === "CONSOLIDATED") corBadge = "#27ae60";
-    if (statusOperacional === "FINISH") corBadge = "#f39c12";
-    if (statusOperacional === "PENDING") corBadge = "#3498db";
+    if (statusOperacional === "PENDING") corBadge = "#f39c12";
     const card = document.createElement("div");
     card.className = "trip-item-card";
     card.innerHTML = `
@@ -109,8 +109,11 @@ function renderizarListaNaGaveta(trips) {
             </div>
             
             <div style="font-size: 11px; color: #7f8c8d; line-height: 1.5; margin-bottom: 8px; background: white; padding: 5px; border-radius: 4px; border: 1px dashed #ccc;">
-                <span style="color: #3498db;">📍</span> ${cidadeOrigem}<br>
-                <span style="color: #27ae60;">🏁</span> ${cidadeDestino}
+                <span style="color: #3498db;">📌</span> ${cidadeOrigem}<br>
+                ${statusOperacional === 'CONSOLIDATED'
+        ? `<span style="color: #27ae60;">✅</span> ${cidadeDestino}`
+        : `<span style="color: #f39c12;">🔄</span> ${cidadeAtual} <span style="font-size: 10px; color: #7f8c8d;">(em trânsito)</span>`
+      }
             </div>
             
             <div class="trip-id-text" style="font-size: 9px; margin: 0; opacity: 0.7;">ID: ${trip.batch_id}</div>
