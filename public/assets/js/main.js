@@ -310,7 +310,33 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
   const eixoY_Avg = pointsData.map((i) => i.avg !== undefined ? i.avg : i.avg_strain);
 
   instanciaDoGrafico.setOption({
-    tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "cross" },
+      formatter: function (params) {
+        const index = params[0].dataIndex;
+        const pontoMatematico = dataResponse.points[index];
+        let html = `<div style="font-size: 12px; margin-bottom: 5px; font-weight: bold;">⏱ ${params[0].axisValue}</div>`;
+
+        params.forEach(param => {
+          const valor = typeof param.value === 'number' ? param.value.toFixed(2) : param.value;
+          html += `<div style="margin: 3px 0;">${param.marker} ${param.seriesName}: <b>${valor}</b></div>`;
+        });
+
+        if (pontoMatematico && pontoMatematico.t) {
+          const coordGPS = buscarCoordenadaPorTempo(todasCoordenadasViagem, pontoMatematico.t);
+          if (coordGPS && coordGPS.lat && coordGPS.lng) {
+            html += `<hr style="margin: 5px 0; border: 0; border-top: 1px solid #ccc;">`;
+            html += `<div style="font-size: 11px; color: #34495e;">📍 Lat: <b>${coordGPS.lat.toFixed(6)}</b></div>`;
+            html += `<div style="font-size: 11px; color: #34495e;">📍 Lng: <b>${coordGPS.lng.toFixed(6)}</b></div>`;
+          } else {
+            html += `<hr style="margin: 5px 0; border: 0; border-top: 1px solid #ccc;">`;
+            html += `<div style="font-size: 11px; color: #7f8c8d;">📍 GPS Indisponível</div>`;
+          }
+        }
+        return html;
+      }
+    },
     grid: { left: "2%", right: "12%", bottom: "12%", top: "2%", containLabel: true },
     legend: {
       data: ["Máxima", "Média", "Mínima"],
