@@ -416,7 +416,9 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
             </div>
             <div style="text-align: right;">
                 <div style="font-size: 10px; color: #7f8c8d; text-transform: uppercase; text-align:right; font-weight: bold;">Status</div>
-                <div style="font-size: 11px; font-weight: bold; color: white; background: #34495e; padding: 2px 8px; border-radius: 10px; display: inline-block;">${statusOperacional}</div>
+                <div style="font-size: 11px; font-weight: bold; color: white; background: ${statusOperacional === 'CONSOLIDATED' ? '#27ae60' : statusOperacional === 'PENDING' ? '#f39c12' : '#34495e'}; padding: 2px 8px; border-radius: 10px; display: inline-block;">
+                    ${statusOperacional}
+                </div>
             </div>
         </div>
         <div class="info-label">Trajeto (Origem ➔ Destino)</div>
