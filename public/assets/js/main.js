@@ -179,7 +179,7 @@ async function carregarMapa(batchId) {
       if (trecho.geo_points) todasCoordenadasViagem.push(...trecho.geo_points);
       const isCritical = trecho.is_critical;
       const linhaEstrutural = L.polyline(coords, {
-        color: isCritical ? "#ff1900" : "#460FFB", weight: isCritical ? 8 : 2, opacity: 0.99, cursor: isCritical ? "pointer" : "default",
+        color: isCritical ? "#ff1900" : "#460FFB", weight: isCritical ? 8 : 4, opacity: 0.99, cursor: isCritical ? "pointer" : "default",
       });
 
       if (isCritical) {
