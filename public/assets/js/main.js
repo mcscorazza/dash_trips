@@ -394,7 +394,7 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
         return html;
       }
     },
-    grid: { left: "2%", right: "5%", bottom: 50, top: "2%", containLabel: true },
+    grid: { left: "2%", right: "12%", bottom: 50, top: "2%", containLabel: true },
     legend: {
       data: ["Máxima", "Média", "Mínima"],
       orient: "vertical",
