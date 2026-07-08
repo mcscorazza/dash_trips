@@ -511,6 +511,12 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
         <div class="info-label">Diagnóstico de Tensão</div>
         <div class="info-value" style="color: ${statusCor}; font-weight: bold">${statusTexto}</div>
 
+        <div class="info-label" style="margin-top: 10px;">Dano Acumulado (Fadiga)</div>
+        
+        <div class="info-value" style="font-size: 18px; color: #8e44ad; font-weight: bold; border: none;">
+            Σ ${danoTotalViagem > 0 ? danoTotalViagem.toExponential(4) : "0.0000"}
+        </div>
+
         <div style="display: flex; gap: 10px; margin-top: 15px;">
             <div style="flex: 1;">
                 <div class="info-label">Duração</div>
@@ -521,10 +527,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
                 <div class="info-value" style="font-size: 15px; border: none;"><b>${distanciaKm.toFixed(1)} km</b></div>
             </div>
         </div>
-        <div class="info-label" style="margin-top: 10px;">Dano Acumulado (Fadiga)</div>
-        <div class="info-value" style="font-size: 15px; color: #8e44ad; font-weight: bold; border: none; font-family: monospace;">
-            Σ ${danoTotalViagem > 0 ? danoTotalViagem.toExponential(4) : "0.0000"}
-        </div>
+
         <div class="info-label">Volume de Dados Lidos</div>
         <div class="info-value">${totalPontos} pontos de GPS/Sensores</div>
         
