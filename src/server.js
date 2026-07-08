@@ -41,12 +41,11 @@ app.get('/api/map/:batch_id', async (req, res) => {
 
   try {
     const query = `
-            SELECT geo_points, is_critical, parquet_ref 
-            FROM trip_geolocations 
-            WHERE batch_id = $1 
-            ORDER BY start_timestamp ASC
-        `;
-
+        SELECT geo_points, is_critical, parquet_ref, damage 
+        FROM trip_geolocations 
+        WHERE batch_id = $1 
+        ORDER BY start_timestamp ASC
+    `;
     const result = await db.query(query, [batch_id]);
 
     if (result.rows.length > 0) {

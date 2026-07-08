@@ -13,6 +13,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
 let layerEstrutural = L.layerGroup().addTo(map);
 let layerVelocidade = L.layerGroup();
+let layerDano = L.layerGroup();
 let todasCoordenadasViagem = [];
 let viagensDynamo = [];
 let ultimaViagemBounds = null;
@@ -48,6 +49,18 @@ legendVelocidade.onAdd = () => {
         <span style="color: #27ae60; font-size: 14px;">■</span> 5 a 25 km/h<br>
         <span style="color: #f39c12; font-size: 14px;">■</span> 25 a 50 km/h<br>
         <span style="color: #c0392b; font-size: 14px;">■</span> + 50 km/h
+    `;
+  return div;
+};
+
+const legendDano = L.control({ position: "bottomright" });
+legendDano.onAdd = () => {
+  const div = L.DomUtil.create("div", "legenda");
+  div.innerHTML = `
+        <div style="margin-bottom: 3px;"><b>Dano de Fadiga</b></div>
+        <span style="color: #27ae60; font-size: 14px;">■</span> Esforço Baixo<br>
+        <span style="color: #f39c12; font-size: 14px;">■</span> Esforço Médio<br>
+        <span style="color: #8e44ad; font-size: 14px;">■</span> Esforço Alto
     `;
   return div;
 };
@@ -163,6 +176,16 @@ document.getElementById("toggleLayerSpeed").addEventListener("change", (e) => {
   }
 });
 
+document.getElementById("toggleLayerDamage").addEventListener("change", (e) => {
+  if (e.target.checked) {
+    map.addLayer(layerDano);
+    legendDano.addTo(map);
+  } else {
+    map.removeLayer(layerDano);
+    legendDano.remove();
+  }
+});
+
 // ==========================================
 // 6. CARREGAMENTO DO MAPA
 // ==========================================
@@ -172,8 +195,11 @@ async function carregarMapa(batchId) {
     const trechos = await fetchDadosDoMapa(batchId);
     layerEstrutural.clearLayers();
     layerVelocidade.clearLayers();
+    layerDano.clearLayers();
     let bounds = L.latLngBounds();
     todasCoordenadasViagem = [];
+    const maxDamage = Math.max(...trechos.map(t => parseFloat(t.damage) || 0));
+
     trechos.forEach((trecho) => {
       const coords = trecho.geo_points.map((p) => [p.lat, p.lng]);
       if (trecho.geo_points) todasCoordenadasViagem.push(...trecho.geo_points);
@@ -208,6 +234,32 @@ async function carregarMapa(batchId) {
       }
       if (coordsSeg.length > 1) desenharSegmentoVelocidade(coordsSeg, velsSeg, corAtual);
       bounds.extend(linhaEstrutural.getBounds());
+
+      const danoValor = parseFloat(trecho.damage) || 0;
+      let corDano = "#27ae60";
+
+      if (maxDamage > 0) {
+        const ratio = danoValor / maxDamage;
+        if (ratio > 0.3 && ratio <= 0.7) corDano = "#f39c12";
+        if (ratio > 0.7) corDano = "#8e44ad";
+      }
+
+      const linhaDano = L.polyline(coords, {
+        color: corDano,
+        weight: 6,
+        opacity: 0.85
+      });
+
+      linhaDano.bindTooltip(`
+          <div style="font-size: 11px; line-height: 1.6; min-width: 150px;">
+              <b style="color: ${corDano}; border-bottom: 1px solid #eee; padding-bottom: 3px; display: block; margin-bottom: 4px;">Fadiga Estrutural</b>
+              <div style="display: flex; justify-content: space-between;"><span>Dano Acumulado:</span> <b>${danoValor > 0 ? danoValor.toExponential(3) : 0}</b></div>
+              <div style="display: flex; justify-content: space-between;"><span>Trecho:</span> <b>${trecho.parquet_ref || 'N/A'}</b></div>
+          </div>
+        `, { sticky: true, opacity: 0.95 });
+
+      layerDano.addLayer(linhaDano);
+
     });
     todasCoordenadasViagem.sort((a, b) => a.t - b.t);
     if (trechos.length > 0) {
@@ -407,6 +459,7 @@ window.addEventListener("resize", () => {
 // ==========================================
 function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
   const container = document.getElementById("trip-details");
+  const danoTotalViagem = trechos.reduce((soma, t) => soma + (parseFloat(t.damage) || 0), 0);
 
   if (!trechos || trechos.length === 0 || coordenadasGlobais.length === 0) {
     container.innerHTML = `<div class="info-value" style="color: #e74c3c;">Dados da viagem incompletos.</div>`;
@@ -468,7 +521,10 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
                 <div class="info-value" style="font-size: 15px; border: none;"><b>${distanciaKm.toFixed(1)} km</b></div>
             </div>
         </div>
-
+        <div class="info-label" style="margin-top: 10px;">Dano Acumulado (Fadiga)</div>
+        <div class="info-value" style="font-size: 15px; color: #8e44ad; font-weight: bold; border: none; font-family: monospace;">
+            Σ ${danoTotalViagem > 0 ? danoTotalViagem.toExponential(4) : "0.0000"}
+        </div>
         <div class="info-label">Volume de Dados Lidos</div>
         <div class="info-value">${totalPontos} pontos de GPS/Sensores</div>
         

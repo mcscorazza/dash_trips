@@ -540,3 +540,7 @@
         background-color: #ffecec;
         color: #e74c3c;
       }
+
+      input:checked+.slider.damage {
+        background-color: #8e44ad;
+      }
