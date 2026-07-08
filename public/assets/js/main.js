@@ -538,8 +538,6 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
         <div class="info-label">Volume de Dados Lidos</div>
         <div class="info-value">${totalPontos} pontos de GPS/Sensores</div>
         
-        <div class="info-label" style="margin-top: 10px;">ID do Lote (Batch ID)</div>
-        <div class="info-value" style="font-size: 10px; color: #95a5a6; word-break: break-all; border: none;">${batchId}</div>
     `;
 }
 
@@ -597,7 +595,7 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
       title: {
         text: 'Distribuição e Acúmulo de Dano de Fadiga',
         left: 'center',
-        top: 2,
+        top: 0,
         textStyle: { color: '#2c3e50', fontSize: 15 }
       },
       tooltip: {
@@ -612,7 +610,7 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
           return html;
         }
       },
-      grid: { left: "12%", right: "12%", bottom: 50, top: "2%", containLabel: true },
+      grid: { left: "5%", right: "12%", bottom: 30, top: "10%", containLabel: true },
       legend: {
         data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
         orient: "vertical",
