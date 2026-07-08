@@ -612,11 +612,14 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
           return html;
         }
       },
+      grid: { left: "2%", right: "12%", bottom: 50, top: "2%", containLabel: true },
       legend: {
         data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
-        right: 5
+        orient: "vertical",
+        right: "1%",
+        top: "center",
+        textStyle: { fontSize: 11 }
       },
-      grid: { left: '8%', right: '8%', bottom: 40, top: '5%', containLabel: true },
       dataZoom: [
         { type: "inside" },
         { type: "slider", bottom: 8, height: 15 }
