@@ -17,6 +17,7 @@ let layerDano = L.layerGroup();
 let todasCoordenadasViagem = [];
 let viagensDynamo = [];
 let ultimaViagemBounds = null;
+let trechosAtuaisGlobais = [];
 
 let cursorMarker = L.circleMarker([0, 0], { radius: 6, color: "white", weight: 2, fillColor: "#e74c3c", fillOpacity: 1, zIndexOffset: 1000 });
 
@@ -193,6 +194,7 @@ async function carregarMapa(batchId) {
   fecharBottomChart();
   try {
     const trechos = await fetchDadosDoMapa(batchId);
+    trechosAtuaisGlobais = trechos;
     layerEstrutural.clearLayers();
     layerVelocidade.clearLayers();
     layerDano.clearLayers();
@@ -540,3 +542,99 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
         <div class="info-value" style="font-size: 10px; color: #95a5a6; word-break: break-all; border: none;">${batchId}</div>
     `;
 }
+
+document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () => {
+  if (!trechosAtuaisGlobais || trechosAtuaisGlobais.length === 0) {
+    return alert("Busque uma viagem primeiro para ver o histórico de fadiga.");
+  }
+
+  modalOverlay.classList.add("active");
+
+  if (modalChart) { echarts.dispose(modalChartDom); modalChart = null; }
+  modalChart = echarts.init(modalChartDom);
+
+  let somaAcumulada = 0;
+  const eixoX_Tempo = [];
+  const eixoY_DanoTrecho = [];
+  const eixoY_DanoAcumulado = [];
+
+  trechosAtuaisGlobais.forEach(trecho => {
+    const dano = parseFloat(trecho.damage) || 0;
+    somaAcumulada += dano;
+
+    let tempoStr = "N/A";
+    if (trecho.start_timestamp) {
+      tempoStr = new Date(trecho.start_timestamp * 1000).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
+    } else if (trecho.geo_points && trecho.geo_points[0]) {
+      tempoStr = new Date(trecho.geo_points[0].t * 1000).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
+    }
+
+    eixoX_Tempo.push(tempoStr);
+    eixoY_DanoTrecho.push(dano);
+    eixoY_DanoAcumulado.push(somaAcumulada);
+  });
+
+  const optionDano = {
+    title: { text: 'Distribuição e Acúmulo de Dano de Fadiga', left: 'center', textStyle: { color: '#2c3e50', fontSize: 16 } },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross' },
+      formatter: function (params) {
+        let html = `<div style="font-size: 12px; margin-bottom: 5px; font-weight: bold;">⏱ ${params[0].axisValue}</div>`;
+        params.forEach(param => {
+          const valorFormatado = param.value > 0 ? param.value.toExponential(3) : "0";
+          html += `<div style="margin: 3px 0;">${param.marker} ${param.seriesName}: <b>${valorFormatado}</b></div>`;
+        });
+        return html;
+      }
+    },
+    legend: {
+      data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
+      bottom: 0
+    },
+    grid: { left: '8%', right: '8%', bottom: 80, top: '15%', containLabel: true },
+    dataZoom: [
+      { type: "inside" },
+      { type: "slider", bottom: 30, height: 20 }
+    ],
+    xAxis: [
+      {
+        type: 'category',
+        data: eixoX_Tempo,
+        axisPointer: { type: 'shadow' }
+      }
+    ],
+    yAxis: [
+      {
+        type: 'value',
+        name: 'Dano (Trecho)',
+        axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) }
+      },
+      {
+        type: 'value',
+        name: 'Acumulado (Σ)',
+        axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) }
+      }
+    ],
+    series: [
+      {
+        name: 'Dano no Trecho (Barras)',
+        type: 'bar',
+        yAxisIndex: 0,
+        itemStyle: { color: '#8e44ad', borderRadius: [4, 4, 0, 0] },
+        data: eixoY_DanoTrecho
+      },
+      {
+        name: 'Dano Acumulado (Linha)',
+        type: 'line',
+        yAxisIndex: 1,
+        itemStyle: { color: '#e74c3c' },
+        lineStyle: { width: 3 },
+        symbolSize: 6,
+        data: eixoY_DanoAcumulado
+      }
+    ]
+  };
+
+  modalChart.setOption(optionDano);
+});
