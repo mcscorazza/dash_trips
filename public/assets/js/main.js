@@ -405,7 +405,7 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
       textStyle: { fontSize: 11 }
     },
 
-    dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8 }],
+    dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
     xAxis: { type: "category", boundaryGap: false, data: eixoX, axisLabel: { fontSize: 10 } },
     yAxis: { type: "value", scale: true, name: "", axisLabel: { fontSize: 10 } },
     series: [
@@ -612,7 +612,7 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
           return html;
         }
       },
-      grid: { left: "2%", right: "12%", bottom: 50, top: "2%", containLabel: true },
+      grid: { left: "12%", right: "12%", bottom: 50, top: "2%", containLabel: true },
       legend: {
         data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
         orient: "vertical",
@@ -622,7 +622,7 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
       },
       dataZoom: [
         { type: "inside" },
-        { type: "slider", bottom: 8, height: 15 }
+        { type: "slider", bottom: 8, height: 20 }
       ],
       xAxis: [
         {
@@ -656,6 +656,29 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     };
 
     bottomChart.setOption(optionDano);
+    bottomChart.off("updateAxisPointer");
+    bottomChart.off("globalout");
+    bottomChart.on("updateAxisPointer", function (event) {
+      const xAxisInfo = event.axesInfo[0];
+      if (xAxisInfo) {
+        const index = xAxisInfo.value;
+        const trechoHovered = trechosAtuaisGlobais[index];
+        if (trechoHovered && trechoHovered.geo_points && trechoHovered.geo_points.length > 0) {
+          const lat = trechoHovered.geo_points[0].lat;
+          const lng = trechoHovered.geo_points[0].lng;
+          cursorMarker.setLatLng([lat, lng]);
+          if (!map.hasLayer(cursorMarker)) {
+            cursorMarker.addTo(map);
+          }
+        }
+      }
+    });
+
+    bottomChart.on("globalout", function () {
+      if (map.hasLayer(cursorMarker)) {
+        map.removeLayer(cursorMarker);
+      }
+    });
 
   }, 350);
 });
