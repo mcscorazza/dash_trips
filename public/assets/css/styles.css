@@ -76,17 +76,21 @@
       #workspace {
         display: flex;
         flex-direction: column;
-        gap: 10px;
         flex-grow: 1;
         height: 100%;
         transition: 0.3s;
+        /* Removemos o gap: 10px daqui */
+        overflow: hidden;
+        /* Blinda a div para nunca ultrapassar 100vh */
       }
 
       .upper-container {
         display: flex;
         flex-direction: row;
         gap: 10px;
-        flex-grow: 1;
+        height: 100%;
+        /* Ocupa 100% quando o gráfico está fechado */
+        min-height: 0;
         transition: 0.3s;
       }
 
@@ -163,8 +167,11 @@
         background: white;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        padding: 0 15px;
         height: 0;
+        padding: 0;
+        /* Zera totalmente o preenchimento inicial */
+        margin-top: 0;
+        /* Zera a margem inicial */
         opacity: 0;
         overflow: hidden;
         transition: 0.3s;
@@ -194,13 +201,12 @@
       }
 
       #workspace.split-view .upper-container {
-        flex-grow: 0;
         height: calc(50% - 5px);
       }
 
       #workspace.split-view .chart-wrapper {
-        flex-grow: 0;
         height: calc(50% - 5px);
+        margin-top: 10px;
         opacity: 1;
         padding: 30px 10px 10px 10px;
       }
