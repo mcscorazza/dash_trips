@@ -235,6 +235,10 @@ async function carregarMapa(batchId) {
       if (coordsSeg.length > 1) desenharSegmentoVelocidade(coordsSeg, velsSeg, corAtual);
       bounds.extend(linhaEstrutural.getBounds());
 
+      const latInicio = trecho.geo_points[0].lat.toFixed(5);
+      const lngInicio = trecho.geo_points[0].lng.toFixed(5);
+      const dataHora = new Date(trecho.start_timestamp * 1000).toLocaleString("pt-BR");
+
       const danoValor = parseFloat(trecho.damage) || 0;
       let corDano = "#27ae60";
 
@@ -251,12 +255,13 @@ async function carregarMapa(batchId) {
       });
 
       linhaDano.bindTooltip(`
-          <div style="font-size: 11px; line-height: 1.6; min-width: 150px;">
-              <b style="color: ${corDano}; border-bottom: 1px solid #eee; padding-bottom: 3px; display: block; margin-bottom: 4px;">Fadiga Estrutural</b>
-              <div style="display: flex; justify-content: space-between;"><span>Dano Acumulado:</span> <b>${danoValor > 0 ? danoValor.toExponential(3) : 0}</b></div>
-              <div style="display: flex; justify-content: space-between;"><span>Trecho:</span> <b>${trecho.parquet_ref || 'N/A'}</b></div>
-          </div>
-        `, { sticky: true, opacity: 0.95 });
+        <div style="font-size: 11px; line-height: 1.6; min-width: 160px;">
+            <b style="color: ${corDano}; border-bottom: 1px solid #eee; padding-bottom: 3px; display: block; margin-bottom: 4px;">Fadiga Estrutural</b>
+            <div style="display: flex; justify-content: space-between;"><span>Dano Calculado:</span> <b>${danoValor > 0 ? danoValor.toExponential(3) : 0}</b></div>
+            <div style="display: flex; justify-content: space-between;"><span>Horário:</span> <b>${dataHora}</b></div>
+            <div style="display: flex; justify-content: space-between;"><span>Lat/Lng:</span> <b>${latInicio}, ${lngInicio}</b></div>
+        </div>
+      `, { sticky: true, opacity: 0.95 });
 
       layerDano.addLayer(linhaDano);
 
@@ -512,7 +517,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
         <div class="info-value" style="color: ${statusCor}; font-weight: bold">${statusTexto}</div>
 
         <div class="info-label" style="margin-top: 10px;">Dano Acumulado (Fadiga)</div>
-        
+
         <div class="info-value" style="font-size: 18px; color: #8e44ad; font-weight: bold; border: none;">
             Σ ${danoTotalViagem > 0 ? danoTotalViagem.toExponential(4) : "0.0000"}
         </div>
