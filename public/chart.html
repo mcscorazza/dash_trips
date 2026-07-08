@@ -177,25 +177,30 @@
               tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
               legend: {
                 data: ["Máxima", "Média", "Mínima"],
-                top: "bottom",
+                bottom: 0, // Cola a legenda no limite inferior do card
               },
               grid: {
                 left: "3%",
                 right: "4%",
-                bottom: "25%",
+                bottom: 75, // Espaço fixo em pixels para caber a legenda e o slider
                 top: "5%",
                 containLabel: true,
               },
               dataZoom: [
                 { type: "inside", start: 0, end: 100 },
-                { type: "slider", start: 0, end: 100 },
+                {
+                  type: "slider",
+                  start: 0,
+                  end: 100,
+                  bottom: 30, // Levanta o slider para ficar exatamente acima da legenda
+                },
               ],
               xAxis: {
                 type: "category",
                 boundaryGap: false,
                 data: eixoX_Tempo,
               },
-              yAxis: { type: "value", name: "Truque_A", scale: true },
+              yAxis: { type: "value", name: "SG15", scale: true },
               series: [
                 {
                   name: "Máxima",
