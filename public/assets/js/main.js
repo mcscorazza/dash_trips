@@ -246,7 +246,7 @@ async function carregarMapa(batchId) {
 
       if (maxDamage > 0) {
         const ratio = danoValor / maxDamage;
-        if (ratio > 0.3 && ratio <= 0.7) corDano = "#f39c12";
+        if (ratio > 0.01 && ratio <= 0.7) corDano = "#f39c12";
         if (ratio > 0.7) corDano = "#8e44ad";
       }
 
@@ -604,30 +604,23 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
         axisPointer: { type: 'shadow' }
       }
     ],
-    yAxis: [
-      {
-        type: 'value',
-        name: 'Dano (Trecho)',
-        axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) }
-      },
-      {
-        type: 'value',
-        name: 'Acumulado (Σ)',
-        axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) }
-      }
-    ],
+    yAxis: {
+      type: 'value',
+      name: 'Dano de Fadiga',
+      axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) },
+      splitLine: { lineStyle: { type: 'dashed', opacity: 0.5 } }
+    },
     series: [
       {
         name: 'Dano no Trecho (Barras)',
         type: 'bar',
-        yAxisIndex: 0,
-        itemStyle: { color: '#8e44ad', borderRadius: [4, 4, 0, 0] },
+        itemStyle: { color: '#8e44ad', borderRadius: [4, 4, 0, 0], opacity: 0.8 },
         data: eixoY_DanoTrecho
       },
       {
         name: 'Dano Acumulado (Linha)',
         type: 'line',
-        yAxisIndex: 1,
+        // Também usa o eixo padrão (0)
         itemStyle: { color: '#e74c3c' },
         lineStyle: { width: 3 },
         symbolSize: 6,
