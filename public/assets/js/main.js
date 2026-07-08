@@ -548,103 +548,111 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     return alert("Busque uma viagem primeiro para ver o histórico de fadiga.");
   }
 
-  // 1. Cancela qualquer requisição do outro gráfico se estiver rodando
+  // 1. Cancela requisições pendentes
   if (currentBottomFetch) currentBottomFetch.abort();
 
-  // 2. Abre o painel inferior (split-view)
+  // 2. Abre a aba inferior (inicia a animação CSS de 300ms)
   workspace.classList.add("split-view");
 
-  // 3. Redimensiona o mapa suavemente para caber na metade da tela
+  // 3. Coloca um aviso de carregamento enquanto a aba está "subindo"
+  bottomChartDom.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #8e44ad; font-weight: bold; font-size: 15px;">📊 Preparando Histograma...</div>`;
+
+  // 4. Aguarda 350ms (tempo suficiente para o CSS terminar de abrir a aba)
   setTimeout(() => {
+    // Redimensiona o mapa
     map.invalidateSize();
     if (ultimaViagemBounds) map.fitBounds(ultimaViagemBounds, { padding: [30, 30] });
-  }, 300);
 
-  // 4. Limpa o gráfico inferior atual (se existir)
-  if (bottomChart) { echarts.dispose(bottomChartDom); bottomChart = null; }
-  bottomChart = echarts.init(bottomChartDom);
+    // Limpa a tela de loading e destrói o gráfico anterior
+    bottomChartDom.innerHTML = "";
+    if (bottomChart) { echarts.dispose(bottomChartDom); bottomChart = null; }
 
-  // 5. Prepara os dados matemáticos
-  let somaAcumulada = 0;
-  const eixoX_Tempo = [];
-  const eixoY_DanoTrecho = [];
-  const eixoY_DanoAcumulado = [];
+    // Inicia o canvas do ECharts agora que a div tem o tamanho correto (100%)
+    bottomChart = echarts.init(bottomChartDom);
 
-  trechosAtuaisGlobais.forEach(trecho => {
-    const dano = parseFloat(trecho.damage) || 0;
-    somaAcumulada += dano;
+    // 5. Matemática dos dados
+    let somaAcumulada = 0;
+    const eixoX_Tempo = [];
+    const eixoY_DanoTrecho = [];
+    const eixoY_DanoAcumulado = [];
 
-    let tempoStr = "N/A";
-    if (trecho.start_timestamp) {
-      tempoStr = new Date(trecho.start_timestamp * 1000).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
-    } else if (trecho.geo_points && trecho.geo_points[0]) {
-      tempoStr = new Date(trecho.geo_points[0].t * 1000).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
-    }
+    trechosAtuaisGlobais.forEach(trecho => {
+      const dano = parseFloat(trecho.damage) || 0;
+      somaAcumulada += dano;
 
-    eixoX_Tempo.push(tempoStr);
-    eixoY_DanoTrecho.push(dano);
-    eixoY_DanoAcumulado.push(somaAcumulada);
-  });
-
-  // 6. Configura e desenha o gráfico na mesma escala (um único eixo Y)
-  const optionDano = {
-    title: {
-      text: 'Distribuição e Acúmulo de Dano de Fadiga',
-      left: 'center',
-      top: 5,
-      textStyle: { color: '#2c3e50', fontSize: 15 }
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'cross' },
-      formatter: function (params) {
-        let html = `<div style="font-size: 12px; margin-bottom: 5px; font-weight: bold;">⏱ ${params[0].axisValue}</div>`;
-        params.forEach(param => {
-          const valorFormatado = param.value > 0 ? param.value.toExponential(3) : "0";
-          html += `<div style="margin: 3px 0;">${param.marker} ${param.seriesName}: <b>${valorFormatado}</b></div>`;
-        });
-        return html;
+      let tempoStr = "N/A";
+      if (trecho.start_timestamp) {
+        tempoStr = new Date(trecho.start_timestamp * 1000).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
+      } else if (trecho.geo_points && trecho.geo_points[0]) {
+        tempoStr = new Date(trecho.geo_points[0].t * 1000).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
       }
-    },
-    legend: {
-      data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
-      bottom: 5
-    },
-    grid: { left: '8%', right: '8%', bottom: 70, top: '18%', containLabel: true },
-    dataZoom: [
-      { type: "inside" },
-      { type: "slider", bottom: 25, height: 20 }
-    ],
-    xAxis: [
-      {
-        type: 'category',
-        data: eixoX_Tempo,
-        axisPointer: { type: 'shadow' }
-      }
-    ],
-    yAxis: {
-      type: 'value',
-      name: 'Dano de Fadiga',
-      axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) },
-      splitLine: { lineStyle: { type: 'dashed', opacity: 0.5 } }
-    },
-    series: [
-      {
-        name: 'Dano no Trecho (Barras)',
-        type: 'bar',
-        itemStyle: { color: '#8e44ad', borderRadius: [4, 4, 0, 0], opacity: 0.8 },
-        data: eixoY_DanoTrecho
+
+      eixoX_Tempo.push(tempoStr);
+      eixoY_DanoTrecho.push(dano);
+      eixoY_DanoAcumulado.push(somaAcumulada);
+    });
+
+    // 6. Configuração e renderização
+    const optionDano = {
+      title: {
+        text: 'Distribuição e Acúmulo de Dano de Fadiga',
+        left: 'center',
+        top: 2,
+        textStyle: { color: '#2c3e50', fontSize: 15 }
       },
-      {
-        name: 'Dano Acumulado (Linha)',
-        type: 'line',
-        itemStyle: { color: '#e74c3c' },
-        lineStyle: { width: 3 },
-        symbolSize: 6,
-        data: eixoY_DanoAcumulado
-      }
-    ]
-  };
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'cross' },
+        formatter: function (params) {
+          let html = `<div style="font-size: 12px; margin-bottom: 5px; font-weight: bold;">⏱ ${params[0].axisValue}</div>`;
+          params.forEach(param => {
+            const valorFormatado = param.value > 0 ? param.value.toExponential(3) : "0";
+            html += `<div style="margin: 3px 0;">${param.marker} ${param.seriesName}: <b>${valorFormatado}</b></div>`;
+          });
+          return html;
+        }
+      },
+      legend: {
+        data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
+        right: 5
+      },
+      grid: { left: '8%', right: '8%', bottom: 40, top: '5%', containLabel: true },
+      dataZoom: [
+        { type: "inside" },
+        { type: "slider", bottom: 8, height: 15 }
+      ],
+      xAxis: [
+        {
+          type: 'category',
+          data: eixoX_Tempo,
+          axisPointer: { type: 'shadow' }
+        }
+      ],
+      yAxis: {
+        type: 'value',
+        name: 'Dano de Fadiga',
+        axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) },
+        splitLine: { lineStyle: { type: 'dashed', opacity: 0.5 } }
+      },
+      series: [
+        {
+          name: 'Dano no Trecho (Barras)',
+          type: 'bar',
+          itemStyle: { color: '#8e44ad', borderRadius: [4, 4, 0, 0], opacity: 0.8 },
+          data: eixoY_DanoTrecho
+        },
+        {
+          name: 'Dano Acumulado (Linha)',
+          type: 'line',
+          itemStyle: { color: '#e74c3c' },
+          lineStyle: { width: 3 },
+          symbolSize: 6,
+          data: eixoY_DanoAcumulado
+        }
+      ]
+    };
 
-  bottomChart.setOption(optionDano);
+    bottomChart.setOption(optionDano);
+
+  }, 350);
 });
