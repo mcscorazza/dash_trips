@@ -548,11 +548,23 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     return alert("Busque uma viagem primeiro para ver o histórico de fadiga.");
   }
 
-  modalOverlay.classList.add("active");
+  // 1. Cancela qualquer requisição do outro gráfico se estiver rodando
+  if (currentBottomFetch) currentBottomFetch.abort();
 
-  if (modalChart) { echarts.dispose(modalChartDom); modalChart = null; }
-  modalChart = echarts.init(modalChartDom);
+  // 2. Abre o painel inferior (split-view)
+  workspace.classList.add("split-view");
 
+  // 3. Redimensiona o mapa suavemente para caber na metade da tela
+  setTimeout(() => {
+    map.invalidateSize();
+    if (ultimaViagemBounds) map.fitBounds(ultimaViagemBounds, { padding: [30, 30] });
+  }, 300);
+
+  // 4. Limpa o gráfico inferior atual (se existir)
+  if (bottomChart) { echarts.dispose(bottomChartDom); bottomChart = null; }
+  bottomChart = echarts.init(bottomChartDom);
+
+  // 5. Prepara os dados matemáticos
   let somaAcumulada = 0;
   const eixoX_Tempo = [];
   const eixoY_DanoTrecho = [];
@@ -574,8 +586,14 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     eixoY_DanoAcumulado.push(somaAcumulada);
   });
 
+  // 6. Configura e desenha o gráfico na mesma escala (um único eixo Y)
   const optionDano = {
-    title: { text: 'Distribuição e Acúmulo de Dano de Fadiga', left: 'center', textStyle: { color: '#2c3e50', fontSize: 16 } },
+    title: {
+      text: 'Distribuição e Acúmulo de Dano de Fadiga',
+      left: 'center',
+      top: 5,
+      textStyle: { color: '#2c3e50', fontSize: 15 }
+    },
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'cross' },
@@ -590,12 +608,12 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     },
     legend: {
       data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
-      bottom: 0
+      bottom: 5
     },
-    grid: { left: '8%', right: '8%', bottom: 80, top: '15%', containLabel: true },
+    grid: { left: '8%', right: '8%', bottom: 70, top: '18%', containLabel: true },
     dataZoom: [
       { type: "inside" },
-      { type: "slider", bottom: 30, height: 20 }
+      { type: "slider", bottom: 25, height: 20 }
     ],
     xAxis: [
       {
@@ -620,7 +638,6 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
       {
         name: 'Dano Acumulado (Linha)',
         type: 'line',
-        // Também usa o eixo padrão (0)
         itemStyle: { color: '#e74c3c' },
         lineStyle: { width: 3 },
         symbolSize: 6,
@@ -629,5 +646,5 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     ]
   };
 
-  modalChart.setOption(optionDano);
+  bottomChart.setOption(optionDano);
 });
