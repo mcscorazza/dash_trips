@@ -583,7 +583,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Data/Hora</th>
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Latitude</th>
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Longitude</th>
-                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Tensão Máxima</th>
+                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Deformação Máxima</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -591,7 +591,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
 
         // 4. Preenche a tabela iterando sobre os dados retornados pela API
         alertasDetalhados.forEach(alerta => {
-          const tensaoMax = alerta.max_tension !== null ? parseFloat(alerta.max_tension).toFixed(2) + " MPa" : "N/D";
+          const tensaoMax = alerta.max_tension !== null ? parseFloat(alerta.max_tension).toFixed(2) + " &micro;S" : "N/D";
           const lat = alerta.lat !== null ? parseFloat(alerta.lat).toFixed(5) : "N/A";
           const lng = alerta.lng !== null ? parseFloat(alerta.lng).toFixed(5) : "N/A";
 
