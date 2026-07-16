@@ -606,7 +606,7 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
         title: {
           text: 'Distribuição e Acúmulo de Dano de Fadiga',
           left: 'center',
-          top: -5,
+          top: -15,
           textStyle: { color: '#2c3e50', fontSize: 15 }
         },
         tooltip: {
@@ -629,7 +629,7 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
           textStyle: { fontSize: 11 }
 
         },
-        grid: { left: '2%', right: usarDuplaEscala ? '12%' : '11%', bottom: 50, top: '8%', containLabel: true },
+        grid: { left: '2%', right: usarDuplaEscala ? '12%' : '11%', bottom: 50, top: '10%', containLabel: true },
         dataZoom: [
           { type: "inside" },
           { type: "slider", bottom: 25, height: 20 }
