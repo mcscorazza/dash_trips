@@ -461,6 +461,82 @@ window.addEventListener("resize", () => {
   if (modalChart && modalOverlay.classList.contains("active")) modalChart.resize();
 });
 
+
+// ==========================================
+// MODAL DE ALERTAS CRÍTICOS (TABELA)
+// ==========================================
+document.getElementById("linkAlertasCriticos").addEventListener("click", (e) => {
+  e.preventDefault();
+
+  if (!trechosAtuaisGlobais || trechosAtuaisGlobais.length === 0) {
+    return alert("Nenhuma viagem carregada no momento.");
+  }
+
+  const trechosCriticos = trechosAtuaisGlobais.filter(t => t.is_critical === true || t.is_critical === "true");
+
+  if (trechosCriticos.length === 0) {
+    return alert("Parabéns! Não há alertas críticos nesta viagem.");
+  }
+
+  const somaGlobal = trechosAtuaisGlobais.reduce((acc, t) => acc + (parseFloat(t.damage) || 0), 0);
+  const mediaGlobal = trechosAtuaisGlobais.length > 0 ? (somaGlobal / trechosAtuaisGlobais.length) : 0;
+
+  if (modalChart) {
+    echarts.dispose(modalChartDom);
+    modalChart = null;
+  }
+
+  let tabelaHTML = `
+        <div style="padding: 20px; width: 100%; height: 100%; overflow-y: auto; background: #fff; border-radius: 8px;">
+            <h2 style="color: #c0392b; margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                ⚠️ Detalhamento de Alertas Críticos
+            </h2>
+            <p style="color: #7f8c8d; font-size: 14px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+                Média de Dano Global da Viagem: <b style="color: #2c3e50;">${mediaGlobal.toExponential(3)}</b>
+            </p>
+            
+            <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; text-align: left;">
+                <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 2;">
+                    <tr>
+                        <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Data/Hora</th>
+                        <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Latitude</th>
+                        <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Longitude</th>
+                        <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Dano Medido</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+  trechosCriticos.forEach(trecho => {
+    const dano = parseFloat(trecho.damage) || 0;
+    const lat = (trecho.geo_points && trecho.geo_points.length > 0) ? trecho.geo_points[0].lat.toFixed(5) : "N/A";
+    const lng = (trecho.geo_points && trecho.geo_points.length > 0) ? trecho.geo_points[0].lng.toFixed(5) : "N/A";
+
+    let tempoStr = "N/A";
+    if (trecho.start_timestamp) {
+      tempoStr = new Date(trecho.start_timestamp * 1000).toLocaleString("pt-BR");
+    } else if (trecho.geo_points && trecho.geo_points[0]) {
+      tempoStr = new Date(trecho.geo_points[0].t * 1000).toLocaleString("pt-BR");
+    }
+
+    tabelaHTML += `
+            <tr style="border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 12px; color: #555;">${tempoStr}</td>
+                <td style="padding: 12px; color: #555;">${lat}</td>
+                <td style="padding: 12px; color: #555;">${lng}</td>
+                <td style="padding: 12px; color: #e74c3c; font-weight: bold; background: #fdf5f6;">${dano.toExponential(3)}</td>
+            </tr>
+        `;
+  });
+  tabelaHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+  modalChartDom.innerHTML = tabelaHTML;
+  modalOverlay.classList.add("active");
+});
+
 // ==========================================
 // 8. ATUALIZAÇÃO DINÂMICA DA SIDEBAR
 // ==========================================
@@ -516,7 +592,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
     }
         </div>
         <div class="info-label">Diagnóstico de Tensão</div>
-        <div class="info-value" style="color: ${statusCor}; font-weight: bold">${statusTexto}</div>
+        <div class="info-value" style="color: ${statusCor}; font-weight: bold"><a href="#" id="linkAlertasCriticos">${statusTexto}</a></div>
 
         <div class="info-label" style="margin-top: 10px;">Dano Acumulado (Fadiga)</div>
 
