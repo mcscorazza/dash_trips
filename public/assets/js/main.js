@@ -629,7 +629,7 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
           textStyle: { fontSize: 11 }
 
         },
-        grid: { left: '2%', right: usarDuplaEscala ? '14%' : '12%', bottom: 25, top: '2%', containLabel: true },
+        grid: { left: '2%', right: usarDuplaEscala ? '12%' : '11%', bottom: 50, top: '2%', containLabel: true },
         dataZoom: [
           { type: "inside" },
           { type: "slider", bottom: 25, height: 20 }
