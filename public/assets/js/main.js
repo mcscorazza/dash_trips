@@ -557,7 +557,6 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     bottomChartDom.innerHTML = "";
     if (bottomChart) { echarts.dispose(bottomChartDom); bottomChart = null; }
 
-    // Inicia o ECharts
     bottomChart = echarts.init(bottomChartDom);
 
     // ==========================================
@@ -565,8 +564,8 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     // ==========================================
     const toggleDiv = document.createElement("div");
     toggleDiv.style.position = "absolute";
-    toggleDiv.style.top = "15px";
-    toggleDiv.style.right = "80px"; // Afastado para não bater nos botões do ECharts
+    toggleDiv.style.top = "5px";
+    toggleDiv.style.right = "10px"; // Afastado para não bater nos botões do ECharts
     toggleDiv.style.zIndex = "999";
     toggleDiv.innerHTML = `
       <div style="background: rgba(255, 255, 255, 0.95); padding: 6px 12px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1px solid #ddd;">
@@ -578,7 +577,6 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     `;
     bottomChartDom.appendChild(toggleDiv);
 
-    // Matemática dos dados
     let somaAcumulada = 0;
     const eixoX_Tempo = [];
     const eixoY_DanoTrecho = [];
@@ -640,7 +638,6 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
           }
         ],
 
-        // A MÁGICA ACONTECE AQUI: Alterna entre 1 eixo (Objeto) ou 2 eixos (Array)
         yAxis: usarDuplaEscala
           ? [
             {
@@ -667,14 +664,14 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
           {
             name: 'Dano no Trecho (Barras)',
             type: 'bar',
-            yAxisIndex: 0, // Sempre usa o eixo da esquerda
+            yAxisIndex: 0,
             itemStyle: { color: '#8e44ad', borderRadius: [4, 4, 0, 0], opacity: 0.8 },
             data: eixoY_DanoTrecho
           },
           {
             name: 'Dano Acumulado (Linha)',
             type: 'line',
-            yAxisIndex: usarDuplaEscala ? 1 : 0, // Muda pro eixo da direita se dupla escala
+            yAxisIndex: usarDuplaEscala ? 1 : 0,
             itemStyle: { color: '#e74c3c' },
             lineStyle: { width: 3 },
             symbolSize: 6,
@@ -683,8 +680,10 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
         ]
       };
 
-      // O "true" no final força o ECharts a limpar os eixos antigos antes de desenhar os novos
-      bottomChart.setOption(optionDano, true);
+      bottomChart.setOption(optionDano, {
+        replaceMerge: ['yAxis', 'series'],
+        notMerge: false
+      });
     }
 
     // Desenha o gráfico na escala única por padrão (falso)
