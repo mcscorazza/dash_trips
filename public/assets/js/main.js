@@ -396,7 +396,7 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
         return html;
       }
     },
-    grid: { left: "2%", right: "12%", bottom: 50, top: "8%", containLabel: true },
+    grid: { left: "2%", right: "12%", bottom: 50, top: "10%", containLabel: true },
     legend: {
       data: ["Máxima", "Média", "Mínima"],
       orient: "vertical",
@@ -606,7 +606,7 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
         title: {
           text: 'Distribuição e Acúmulo de Dano de Fadiga',
           left: 'center',
-          top: -15,
+          top: 0,
           textStyle: { color: '#2c3e50', fontSize: 15 }
         },
         tooltip: {
