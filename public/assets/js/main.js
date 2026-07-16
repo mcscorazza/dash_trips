@@ -625,7 +625,7 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
           data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
           bottom: 5
         },
-        grid: { left: '8%', right: usarDuplaEscala ? '8%' : '5%', bottom: 70, top: '18%', containLabel: true },
+        grid: { left: '2%', right: usarDuplaEscala ? '15%' : '10%', bottom: 40, top: '12%', containLabel: true },
         dataZoom: [
           { type: "inside" },
           { type: "slider", bottom: 25, height: 20 }
