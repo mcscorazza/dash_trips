@@ -564,8 +564,8 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     // ==========================================
     const toggleDiv = document.createElement("div");
     toggleDiv.style.position = "absolute";
-    toggleDiv.style.top = "5px";
-    toggleDiv.style.right = "10px"; // Afastado para não bater nos botões do ECharts
+    toggleDiv.style.top = "15px";
+    toggleDiv.style.right = "10px";
     toggleDiv.style.zIndex = "999";
     toggleDiv.innerHTML = `
       <div style="background: rgba(255, 255, 255, 0.95); padding: 6px 12px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1px solid #ddd;">
@@ -623,9 +623,13 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
         },
         legend: {
           data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
-          bottom: 5
+          orient: "vertical",
+          right: "1%",
+          top: "center",
+          textStyle: { fontSize: 11 }
+
         },
-        grid: { left: '2%', right: usarDuplaEscala ? '15%' : '10%', bottom: 40, top: '12%', containLabel: true },
+        grid: { left: '2%', right: usarDuplaEscala ? '14%' : '12%', bottom: 25, top: '2%', containLabel: true },
         dataZoom: [
           { type: "inside" },
           { type: "slider", bottom: 25, height: 20 }
