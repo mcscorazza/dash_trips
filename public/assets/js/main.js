@@ -572,13 +572,10 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
         const alertasDetalhados = await response.json();
 
         let tabelaHTML = `
-            <div style="padding: 20px; width: 100%; height: 100%; overflow-y: auto; background: #fff; border-radius: 8px;">
+            <div style="margin: 0 auto; padding: 20px; width: 50%; height: 100%; overflow-y: auto; background: #fff; border-radius: 8px;">
                 <h2 style="color: #c0392b; margin-top: 0; display: flex; align-items: center; gap: 8px;">
                     ⚠️ Detalhamento de Alertas Críticos
                 </h2>
-                <p style="color: #7f8c8d; font-size: 14px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
-                    Média de Dano Global da Viagem: <b style="color: #2c3e50;">${mediaGlobal.toExponential(3)}</b>
-                </p>
                 
                 <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; text-align: left;">
                     <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 2;">
@@ -619,7 +616,6 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
             </div>
         `;
 
-        // 5. Injeta o HTML gerado no DOM
         modalChartDom.innerHTML = tabelaHTML;
 
       } catch (error) {
