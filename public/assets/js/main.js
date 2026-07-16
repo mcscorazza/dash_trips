@@ -544,7 +544,8 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
   const linkAlertas = document.getElementById("linkAlertasCriticos");
 
   if (linkAlertas) {
-    linkAlertas.addEventListener("click", (e) => {
+    // 1. Torna a função assíncrona para podermos usar await
+    linkAlertas.addEventListener("click", async (e) => {
       e.preventDefault();
 
       if (!trechos || trechos.length === 0) return;
@@ -558,59 +559,72 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
       const somaGlobal = trechos.reduce((acc, t) => acc + (parseFloat(t.damage) || 0), 0);
       const mediaGlobal = trechos.length > 0 ? (somaGlobal / trechos.length) : 0;
 
+      // 2. Abre o modal com estado de carregamento
+      modalOverlay.classList.add("active");
       if (modalChart) { echarts.dispose(modalChartDom); modalChart = null; }
+      modalChartDom.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #e74c3c; font-weight: bold; font-size: 15px;">⏳ Carregando Detalhes dos Alertas...</div>`;
 
-      let tabelaHTML = `
-          <div style="padding: 20px; width: 100%; height: 100%; overflow-y: auto; background: #fff; border-radius: 8px;">
-              <h2 style="color: #c0392b; margin-top: 0; display: flex; align-items: center; gap: 8px;">
-                  ⚠️ Detalhamento de Alertas Críticos
-              </h2>
-              <p style="color: #7f8c8d; font-size: 14px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
-                  Média de Dano Global da Viagem: <b style="color: #2c3e50;">${mediaGlobal.toExponential(3)}</b>
-              </p>
-              
-              <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; text-align: left;">
-                  <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 2;">
-                      <tr>
-                          <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Data/Hora</th>
-                          <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Latitude</th>
-                          <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Longitude</th>
-                          <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Dano Medido</th>
-                      </tr>
-                  </thead>
-                  <tbody>
-      `;
+      try {
+        // 3. Faz o fetch para o novo endpoint que traz as tensões máximas
+        const response = await fetch(`/api/alerts/${batchId}`);
+        if (!response.ok) throw new Error("Erro ao buscar detalhes dos alertas");
 
-      trechosCriticos.forEach(trecho => {
-        const dano = parseFloat(trecho.damage) || 0;
-        const lat = (trecho.geo_points && trecho.geo_points.length > 0) ? trecho.geo_points[0].lat.toFixed(5) : "N/A";
-        const lng = (trecho.geo_points && trecho.geo_points.length > 0) ? trecho.geo_points[0].lng.toFixed(5) : "N/A";
+        const alertasDetalhados = await response.json();
 
-        let tempoStr = "N/A";
-        if (trecho.start_timestamp) {
-          tempoStr = new Date(trecho.start_timestamp * 1000).toLocaleString("pt-BR");
-        } else if (trecho.geo_points && trecho.geo_points[0]) {
-          tempoStr = new Date(trecho.geo_points[0].t * 1000).toLocaleString("pt-BR");
-        }
+        let tabelaHTML = `
+            <div style="padding: 20px; width: 100%; height: 100%; overflow-y: auto; background: #fff; border-radius: 8px;">
+                <h2 style="color: #c0392b; margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                    ⚠️ Detalhamento de Alertas Críticos
+                </h2>
+                <p style="color: #7f8c8d; font-size: 14px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+                    Média de Dano Global da Viagem: <b style="color: #2c3e50;">${mediaGlobal.toExponential(3)}</b>
+                </p>
+                
+                <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; text-align: left;">
+                    <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 2;">
+                        <tr>
+                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Data/Hora</th>
+                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Latitude</th>
+                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Longitude</th>
+                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Tensão Máxima</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        // 4. Preenche a tabela iterando sobre os dados retornados pela API
+        alertasDetalhados.forEach(alerta => {
+          const tensaoMax = alerta.max_tension !== null ? parseFloat(alerta.max_tension).toFixed(2) + " MPa" : "N/D";
+          const lat = alerta.lat !== null ? parseFloat(alerta.lat).toFixed(5) : "N/A";
+          const lng = alerta.lng !== null ? parseFloat(alerta.lng).toFixed(5) : "N/A";
+
+          let tempoStr = "N/A";
+          if (alerta.start_timestamp) {
+            tempoStr = new Date(alerta.start_timestamp * 1000).toLocaleString("pt-BR");
+          }
+
+          tabelaHTML += `
+                <tr style="border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 12px; color: #555;">${tempoStr}</td>
+                    <td style="padding: 12px; color: #555;">${lat}</td>
+                    <td style="padding: 12px; color: #555;">${lng}</td>
+                    <td style="padding: 12px; color: #e74c3c; font-weight: bold; background: #fdf5f6;">${tensaoMax}</td>
+                </tr>
+            `;
+        });
 
         tabelaHTML += `
-              <tr style="border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='transparent'">
-                  <td style="padding: 12px; color: #555;">${tempoStr}</td>
-                  <td style="padding: 12px; color: #555;">${lat}</td>
-                  <td style="padding: 12px; color: #555;">${lng}</td>
-                  <td style="padding: 12px; color: #e74c3c; font-weight: bold; background: #fdf5f6;">${dano.toExponential(3)}</td>
-              </tr>
-          `;
-      });
+                    </tbody>
+                </table>
+            </div>
+        `;
 
-      tabelaHTML += `
-                  </tbody>
-              </table>
-          </div>
-      `;
+        // 5. Injeta o HTML gerado no DOM
+        modalChartDom.innerHTML = tabelaHTML;
 
-      modalChartDom.innerHTML = tabelaHTML;
-      modalOverlay.classList.add("active");
+      } catch (error) {
+        modalChartDom.innerHTML = `<div style="color: red; padding: 20px;">Falha ao carregar os dados dos alertas: ${error.message}</div>`;
+      }
     });
   }
 }

@@ -60,6 +60,44 @@ app.get('/api/map/:batch_id', async (req, res) => {
 });
 
 // ==========================================
+// NOVO ENDPOINT: Alertas Críticos (Extrai a tensão máxima)
+// ==========================================
+app.get('/api/alerts/:batch_id', async (req, res) => {
+  const { batch_id } = req.params;
+
+  try {
+    const query = `
+      SELECT geo_points, start_timestamp, chart_data 
+      FROM trip_geolocations 
+      WHERE batch_id = $1 AND is_critical = true 
+      ORDER BY start_timestamp ASC
+    `;
+    const result = await db.query(query, [batch_id]);
+
+    const alertas = result.rows.map(row => {
+      let maxTension = -Infinity;
+
+      if (row.chart_data && Array.isArray(row.chart_data)) {
+        const picos = row.chart_data.map(p => p.max !== undefined ? p.max : -Infinity);
+        maxTension = Math.max(...picos);
+      }
+
+      return {
+        start_timestamp: row.start_timestamp,
+        lat: (row.geo_points && row.geo_points.length > 0) ? row.geo_points[0].lat : null,
+        lng: (row.geo_points && row.geo_points.length > 0) ? row.geo_points[0].lng : null,
+        max_tension: maxTension !== -Infinity ? maxTension : null
+      };
+    });
+
+    res.json(alertas);
+  } catch (error) {
+    console.error("Erro ao buscar alertas:", error);
+    res.status(500).json({ error: "Falha interna no servidor." });
+  }
+});
+
+// ==========================================
 // Viagem Completa (Todas as horas)
 // ==========================================
 app.get('/api/chart/full/:batch_id', async (req, res) => {
