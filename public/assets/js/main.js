@@ -369,6 +369,12 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
   const eixoY_Avg = pointsData.map((i) => i.avg !== undefined ? i.avg : i.avg_strain);
 
   instanciaDoGrafico.setOption({
+    title: {
+      text: 'Gráfico de Deformação (&micro;S)',
+      left: 'center',
+      top: 0,
+      textStyle: { color: '#2c3e50', fontSize: 15 }
+    },
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "cross" },
@@ -515,7 +521,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
       : `<span style="color: #f39c12;">🔄</span> ${cidadeAtual} <span style="font-size: 10px; color: #7f8c8d;">(em trânsito)</span>`
     }
         </div>
-        <div class="info-label">Diagnóstico de Tensão</div>
+        <div class="info-label">Diagnóstico de Deformação</div>
         <div class="info-value" style="color: ${statusCor}; font-weight: bold"><a href="#" id="linkAlertasCriticos"
         style="color: #e74c3c; font-weight: bold; text-decoration: underline; cursor: pointer;">${statusTexto}</a></div>
 
