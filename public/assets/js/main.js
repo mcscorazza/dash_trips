@@ -546,29 +546,39 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
     return alert("Busque uma viagem primeiro para ver o histórico de fadiga.");
   }
 
-  // 1. Cancela requisições pendentes
   if (currentBottomFetch) currentBottomFetch.abort();
-
-  // 2. Abre a aba inferior (inicia a animação CSS de 300ms)
   workspace.classList.add("split-view");
-
-  // 3. Coloca um aviso de carregamento enquanto a aba está "subindo"
   bottomChartDom.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #8e44ad; font-weight: bold; font-size: 15px;">📊 Preparando Histograma...</div>`;
 
-  // 4. Aguarda 350ms (tempo suficiente para o CSS terminar de abrir a aba)
   setTimeout(() => {
-    // Redimensiona o mapa
     map.invalidateSize();
     if (ultimaViagemBounds) map.fitBounds(ultimaViagemBounds, { padding: [30, 30] });
 
-    // Limpa a tela de loading e destrói o gráfico anterior
     bottomChartDom.innerHTML = "";
     if (bottomChart) { echarts.dispose(bottomChartDom); bottomChart = null; }
 
-    // Inicia o canvas do ECharts agora que a div tem o tamanho correto (100%)
+    // Inicia o ECharts
     bottomChart = echarts.init(bottomChartDom);
 
-    // 5. Matemática dos dados
+    // ==========================================
+    // CRIAÇÃO DA CHAVINHA FLUTUANTE (TOGGLE)
+    // ==========================================
+    const toggleDiv = document.createElement("div");
+    toggleDiv.style.position = "absolute";
+    toggleDiv.style.top = "15px";
+    toggleDiv.style.right = "80px"; // Afastado para não bater nos botões do ECharts
+    toggleDiv.style.zIndex = "999";
+    toggleDiv.innerHTML = `
+      <div style="background: rgba(255, 255, 255, 0.95); padding: 6px 12px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1px solid #ddd;">
+        <label style="font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0; color: #2c3e50; font-weight: bold;">
+          <input type="checkbox" id="chkDuplaEscala" style="cursor: pointer; width: 16px; height: 16px;">
+          Escalas Independentes
+        </label>
+      </div>
+    `;
+    bottomChartDom.appendChild(toggleDiv);
+
+    // Matemática dos dados
     let somaAcumulada = 0;
     const eixoX_Tempo = [];
     const eixoY_DanoTrecho = [];
@@ -590,92 +600,125 @@ document.getElementById("btnVerHistogramaFadiga").addEventListener("click", () =
       eixoY_DanoAcumulado.push(somaAcumulada);
     });
 
-    // 6. Configuração e renderização
-    const optionDano = {
-      title: {
-        text: 'Distribuição e Acúmulo de Dano de Fadiga',
-        left: 'center',
-        top: 0,
-        textStyle: { color: '#2c3e50', fontSize: 15 }
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'cross' },
-        formatter: function (params) {
-          let html = `<div style="font-size: 12px; margin-bottom: 5px; font-weight: bold;">⏱ ${params[0].axisValue}</div>`;
-          params.forEach(param => {
-            const valorFormatado = param.value > 0 ? param.value.toExponential(3) : "0";
-            html += `<div style="margin: 3px 0;">${param.marker} ${param.seriesName}: <b>${valorFormatado}</b></div>`;
-          });
-          return html;
-        }
-      },
-      grid: { left: "5%", right: "12%", bottom: 30, top: "10%", containLabel: true },
-      legend: {
-        data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
-        orient: "vertical",
-        right: "1%",
-        top: "center",
-        textStyle: { fontSize: 11 }
-      },
-      dataZoom: [
-        { type: "inside" },
-        { type: "slider", bottom: 8, height: 20 }
-      ],
-      xAxis: [
-        {
-          type: 'category',
-          data: eixoX_Tempo,
-          axisPointer: { type: 'shadow' }
-        }
-      ],
-      yAxis: {
-        type: 'value',
-        name: 'Dano de Fadiga',
-        axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) },
-        splitLine: { lineStyle: { type: 'dashed', opacity: 0.5 } }
-      },
-      series: [
-        {
-          name: 'Dano no Trecho (Barras)',
-          type: 'bar',
-          itemStyle: { color: '#8e44ad', borderRadius: [4, 4, 0, 0], opacity: 0.8 },
-          data: eixoY_DanoTrecho
+    // ==========================================
+    // FUNÇÃO QUE DESENHA O GRÁFICO (1 OU 2 EIXOS)
+    // ==========================================
+    function desenharGraficoFadiga(usarDuplaEscala) {
+      const optionDano = {
+        title: {
+          text: 'Distribuição e Acúmulo de Dano de Fadiga',
+          left: 'center',
+          top: 5,
+          textStyle: { color: '#2c3e50', fontSize: 15 }
         },
-        {
-          name: 'Dano Acumulado (Linha)',
-          type: 'line',
-          itemStyle: { color: '#e74c3c' },
-          lineStyle: { width: 3 },
-          symbolSize: 6,
-          data: eixoY_DanoAcumulado
-        }
-      ]
-    };
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'cross' },
+          formatter: function (params) {
+            let html = `<div style="font-size: 12px; margin-bottom: 5px; font-weight: bold;">⏱ ${params[0].axisValue}</div>`;
+            params.forEach(param => {
+              const valorFormatado = param.value > 0 ? param.value.toExponential(3) : "0";
+              html += `<div style="margin: 3px 0;">${param.marker} ${param.seriesName}: <b>${valorFormatado}</b></div>`;
+            });
+            return html;
+          }
+        },
+        legend: {
+          data: ['Dano no Trecho (Barras)', 'Dano Acumulado (Linha)'],
+          bottom: 5
+        },
+        grid: { left: '8%', right: usarDuplaEscala ? '8%' : '5%', bottom: 70, top: '18%', containLabel: true },
+        dataZoom: [
+          { type: "inside" },
+          { type: "slider", bottom: 25, height: 20 }
+        ],
+        xAxis: [
+          {
+            type: 'category',
+            data: eixoX_Tempo,
+            axisPointer: { type: 'shadow' }
+          }
+        ],
 
-    bottomChart.setOption(optionDano);
+        // A MÁGICA ACONTECE AQUI: Alterna entre 1 eixo (Objeto) ou 2 eixos (Array)
+        yAxis: usarDuplaEscala
+          ? [
+            {
+              type: 'value',
+              name: 'Dano (Trecho)',
+              axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) },
+              splitLine: { show: false } // Esconde a grade para não poluir
+            },
+            {
+              type: 'value',
+              name: 'Acumulado (Σ)',
+              axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) },
+              splitLine: { lineStyle: { type: 'dashed', opacity: 0.5 } }
+            }
+          ]
+          : {
+            type: 'value',
+            name: 'Dano de Fadiga',
+            axisLabel: { formatter: (val) => val === 0 ? "0" : val.toExponential(1) },
+            splitLine: { lineStyle: { type: 'dashed', opacity: 0.5 } }
+          },
+
+        series: [
+          {
+            name: 'Dano no Trecho (Barras)',
+            type: 'bar',
+            yAxisIndex: 0, // Sempre usa o eixo da esquerda
+            itemStyle: { color: '#8e44ad', borderRadius: [4, 4, 0, 0], opacity: 0.8 },
+            data: eixoY_DanoTrecho
+          },
+          {
+            name: 'Dano Acumulado (Linha)',
+            type: 'line',
+            yAxisIndex: usarDuplaEscala ? 1 : 0, // Muda pro eixo da direita se dupla escala
+            itemStyle: { color: '#e74c3c' },
+            lineStyle: { width: 3 },
+            symbolSize: 6,
+            data: eixoY_DanoAcumulado
+          }
+        ]
+      };
+
+      // O "true" no final força o ECharts a limpar os eixos antigos antes de desenhar os novos
+      bottomChart.setOption(optionDano, true);
+    }
+
+    // Desenha o gráfico na escala única por padrão (falso)
+    desenharGraficoFadiga(false);
+
+    // Escuta o clique na chavinha flutuante e redesenha o gráfico instantaneamente
+    document.getElementById("chkDuplaEscala").addEventListener("change", (e) => {
+      desenharGraficoFadiga(e.target.checked);
+    });
+
+    // ==========================================
+    // SINCRONIA DO MAPA (BOLINHA) MANTIDA AQUI
+    // ==========================================
     bottomChart.off("updateAxisPointer");
     bottomChart.off("globalout");
+
     bottomChart.on("updateAxisPointer", function (event) {
       const xAxisInfo = event.axesInfo[0];
       if (xAxisInfo) {
         const index = xAxisInfo.value;
         const trechoHovered = trechosAtuaisGlobais[index];
+
         if (trechoHovered && trechoHovered.geo_points && trechoHovered.geo_points.length > 0) {
           const lat = trechoHovered.geo_points[0].lat;
           const lng = trechoHovered.geo_points[0].lng;
+
           cursorMarker.setLatLng([lat, lng]);
-          if (!map.hasLayer(cursorMarker)) {
-            cursorMarker.addTo(map);
-          }
+          if (!map.hasLayer(cursorMarker)) cursorMarker.addTo(map);
         }
       }
     });
 
     bottomChart.on("globalout", function () {
-      if (map.hasLayer(cursorMarker)) {
-        map.removeLayer(cursorMarker);
-      }
+      if (map.hasLayer(cursorMarker)) map.removeLayer(cursorMarker);
     });
 
   }, 350);
