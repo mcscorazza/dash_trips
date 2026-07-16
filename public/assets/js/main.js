@@ -370,7 +370,7 @@ function renderizarGraficoEcharts(instanciaDoGrafico, dataResponse, titulo) {
 
   instanciaDoGrafico.setOption({
     title: {
-      text: 'Gráfico de Deformação (&micro;S)',
+      text: 'Gráfico de Deformação (µS)',
       left: 'center',
       top: 0,
       textStyle: { color: '#2c3e50', fontSize: 15 }
