@@ -617,7 +617,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
             const fator = Math.abs(tensaoMax / mediaGlobalTensao);
             fatorStr = fator.toFixed(2) + "x";
 
-            if (fator >= 2.0) fatorCor = "#c0392b";
+            if (fator >= 1.8) fatorCor = "#c0392b";
             else if (fator >= 1.5) fatorCor = "#e67e22";
             else fatorCor = "#27ae60";
           }
