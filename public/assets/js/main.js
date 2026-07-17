@@ -580,7 +580,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
                     ⚠️ Detalhamento de Alertas Críticos
                 </h2>
                 <p style="color: #7f8c8d; font-size: 14px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
-                    Média Global de Tensão da Viagem: <b style="color: #2c3e50;">${mediaGlobalTensao > 0 ? mediaGlobalTensao.toFixed(2) : "N/D"} MPa</b>
+                    Média Global de Deformação da Viagem: <b style="color: #2c3e50;">${mediaGlobalTensao > 0 ? mediaGlobalTensao.toFixed(2) : "N/D"}  &micro;S</b>
                 </p>
                 
                 <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; text-align: left;">
@@ -589,8 +589,8 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Data/Hora</th>
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Latitude</th>
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Longitude</th>
-                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Tensão Máxima</th>
-                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Fator (Máx/Média)</th>
+                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Deformação Máxima (&micro;S)</th>
+                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Fator de Amplificação (Máx/Média)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -607,7 +607,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
           }
 
           // Formata a tensão
-          let tensaoMaxStr = tensaoMax !== null ? tensaoMax.toFixed(2) + " MPa" : "N/D";
+          let tensaoMaxStr = tensaoMax !== null ? tensaoMax.toFixed(2) + " &micro;S" : "N/D";
 
           // Calcula o Fator Visual
           let fatorStr = "N/D";
