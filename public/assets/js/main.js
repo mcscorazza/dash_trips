@@ -590,7 +590,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Latitude</th>
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Longitude</th>
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Deformação Máxima (&micro;S)</th>
-                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50; width: 50px;">FA (Máx/Média)</th>
+                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50; width: 65px; text-align: center;">FA (Máx/Média)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -628,7 +628,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
                     <td style="padding: 12px; color: #555;">${lat}</td>
                     <td style="padding: 12px; color: #555;">${lng}</td>
                     <td style="padding: 12px; color: #e74c3c; font-weight: bold; background: #fdf5f6;">${tensaoMaxStr}</td>
-                    <td style="padding: 12px; font-weight: bold; color: ${fatorCor};">${fatorStr}</td>
+                    <td style="padding: 12px; font-weight: bold; color: ${fatorCor};text-align: center;">${fatorStr}</td>
                 </tr>
             `;
         });
