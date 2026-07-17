@@ -66,15 +66,30 @@ app.get('/api/alerts/:batch_id', async (req, res) => {
   const { batch_id } = req.params;
 
   try {
-    const query = `
+    // 1. Query para os alertas
+    const queryAlerts = `
       SELECT geo_points, start_timestamp, chart_data 
       FROM trip_geolocations 
       WHERE batch_id = $1 AND is_critical = true 
       ORDER BY start_timestamp ASC
     `;
-    const result = await db.query(query, [batch_id]);
 
-    const alertas = result.rows.map(row => {
+    // 2. Query para a Média Global (a mesma que você já tem em outras rotas)
+    const queryAvg = `
+      SELECT SUM(chunk_sum) / NULLIF(SUM(chunk_count), 0) AS global_avg
+      FROM trip_geolocations
+      WHERE batch_id = $1
+    `;
+
+    // Roda as duas queries em paralelo para ficar rápido
+    const [resultAlerts, resultAvg] = await Promise.all([
+      db.query(queryAlerts, [batch_id]),
+      db.query(queryAvg, [batch_id])
+    ]);
+
+    const globalAvg = parseFloat(resultAvg.rows[0]?.global_avg || 0);
+
+    const alertas = resultAlerts.rows.map(row => {
       let maxTension = -Infinity;
 
       if (row.chart_data && Array.isArray(row.chart_data)) {
@@ -90,7 +105,11 @@ app.get('/api/alerts/:batch_id', async (req, res) => {
       };
     });
 
-    res.json(alertas);
+    // Retorna a média global junto com o array de alertas
+    res.json({
+      global_average: globalAvg,
+      alerts: alertas
+    });
   } catch (error) {
     console.error("Erro ao buscar alertas:", error);
     res.status(500).json({ error: "Falha interna no servidor." });
