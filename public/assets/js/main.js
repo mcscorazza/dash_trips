@@ -575,7 +575,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
         const alertasDetalhados = data.alerts || [];
 
         let tabelaHTML = `
-            <div style="padding: 20px; width: 60%; height: 100%; overflow-y: auto; background: #fff; border-radius: 8px;">
+            <div style="padding: 20px; width: 50%; margin: 0 auto; height: 100%; overflow-y: auto; background: #fff; border-radius: 8px;">
                 <h2 style="color: #c0392b; margin-top: 0; display: flex; align-items: center; gap: 8px;">
                     ⚠️ Detalhamento de Alertas Críticos
                 </h2>
@@ -590,7 +590,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Latitude</th>
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Longitude</th>
                             <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Deformação Máxima (&micro;S)</th>
-                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50;">Fator de Amplificação (Máx/Média)</th>
+                            <th style="padding: 12px; border-bottom: 2px solid #ddd; color: #2c3e50; width: 50px;">FA (Máx/Média)</th>
                         </tr>
                     </thead>
                     <tbody>
