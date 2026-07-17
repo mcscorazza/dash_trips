@@ -575,7 +575,7 @@ function atualizarResumoViagem(batchId, trechos, coordenadasGlobais) {
         const alertasDetalhados = data.alerts || [];
 
         let tabelaHTML = `
-            <div style="padding: 20px; width: 100%; height: 100%; overflow-y: auto; background: #fff; border-radius: 8px;">
+            <div style="padding: 20px; width: 60%; height: 100%; overflow-y: auto; background: #fff; border-radius: 8px;">
                 <h2 style="color: #c0392b; margin-top: 0; display: flex; align-items: center; gap: 8px;">
                     ⚠️ Detalhamento de Alertas Críticos
                 </h2>
